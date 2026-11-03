@@ -8,15 +8,17 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('customers', function (Blueprint $table) {
-            $table->string('contact_number', 20)->nullable();
+        Schema::create('customers', function (Blueprint $table) {
+            $table->id();
+            $table->string('customer_name');
+            $table->string('customer_number', 30)->index();
+            $table->string('contact_number', 30)->nullable();
+            $table->timestamps();
         });
     }
 
     public function down(): void
     {
-        Schema::table('customers', function (Blueprint $table) {
-            $table->dropColumn('contact_number');
-        });
+        Schema::dropIfExists('customers');
     }
 };
