@@ -42,17 +42,17 @@ class ReservationService
 
             // Store menu item names in title case.
             $name = mb_convert_case(
-                $this->cleanText($menuItem->menu_item_name),
+                $this->cleanText($menuItem->name),
                 MB_CASE_TITLE,
                 'UTF-8'
             );
 
-            $menuItem->menu_item_name = $name;
+            $menuItem->name = $name;
             $menuItem->save();
 
             $quantity = (int) $item['quantity'];
             $unitPriceCents = (int) round(
-                (float) $menuItem->item_price * 100
+                (float) $menuItem->price * 100
             );
 
             $totalCents += $unitPriceCents * $quantity;
@@ -114,18 +114,19 @@ class ReservationService
 
             $this->checkDeposit($deposit, $total);
 
-            $customer = Customer::firstOrCreate(
-                [
-                    'contact_number' => $this->cleanPhone(
-                        $data['contact_number']
-                    ),
-                ],
-                [
-                    'customer_name' => $this->cleanText(
-                        $data['customer_name']
-                    ),
-                ]
-            );
+           $phone = $this->cleanPhone($data['contact_number']);
+
+        $customer = Customer::firstOrCreate(
+    [
+        'contact_number' => $phone,
+    ],
+    [
+        'customer_name' => $this->cleanText(
+            $data['customer_name']
+        ),
+        'customer_number' => $phone,
+    ]
+);
 
             $customer->customer_name = $this->cleanText(
                 $data['customer_name']

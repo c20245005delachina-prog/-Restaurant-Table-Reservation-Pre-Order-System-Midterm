@@ -29,7 +29,7 @@ class ReservationController extends Controller
             ->with([
                 'customer:id,customer_name,contact_number',
                 'restaurantTable:id,table_number,table_capacity',
-                'reservationItems.menuItem:id,menu_item_name,item_price',
+                'reservationItems.menuItem:id,name,category,price',
             ])
             ->latest('reservation_time')
             ->paginate(10)
@@ -129,11 +129,11 @@ class ReservationController extends Controller
             'menuItems' => MenuItem::query()
                 ->select([
                     'id',
-                    'menu_item_name',
-                    'item_category',
-                    'item_price',
+                    'name',
+                    'category',
+                    'price',
                 ])
-                ->orderBy('menu_item_name')
+                ->orderBy('name')
                 ->get(),
         ]);
     }

@@ -1,309 +1,228 @@
+
 import { Head, Link, useForm } from '@inertiajs/react';
 import { FormEvent } from 'react';
 
-interface Customer {
-    id: number;
-    customer_name: string;
-    customer_number: string;
-}
-
-interface MenuItem {
-    id: number;
-    name: string;
-    category: string;
-    price: number | string;
-}
-
-interface RestaurantTable {
-    id: number;
-    table_number: string | number;
-    table_capacity: number;
-}
-
-interface Props {
-    customers: Customer[];
-    menuItems: MenuItem[];
-    restaurantTables: RestaurantTable[];
-}
-
-export default function Create({
-    customers,
-    menuItems,
-    restaurantTables,
-}: Props) {
-    const { data, setData, post, processing, errors } = useForm({
-        customer_id: '',
-        menu_item_id: '',
-        restaurant_table_id: '',
-        reservation_date: '',
-        reservation_time: '',
-        number_of_guests: '1',
-        notes: '',
+export default function Create() {
+    const { data, setData, post, processing, errors, reset } = useForm({
+        menu_item_name: '',
+        item_category: '',
+        item_price: '',
     });
 
-    function handleSubmit(e: FormEvent) {
+    const submit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        post('/reservations');
-    }
+
+        post('/menu-items', {
+            onSuccess: () => reset(),
+        });
+    };
+
+    const inputStyle =
+        'w-full rounded-xl border border-purple-200 bg-white px-4 py-3 text-purple-950 outline-none transition placeholder:text-purple-300 focus:border-purple-500 focus:ring-2 focus:ring-purple-100';
 
     return (
         <>
-            <Head title="Create Reservation" />
+            <Head title="Add Menu Item" />
 
-            <div className="min-h-screen bg-purple-50 px-4 py-10">
-                <div className="mx-auto max-w-3xl rounded-2xl bg-white p-8 shadow-lg">
+            <div className="min-h-screen bg-purple-50 px-6 py-10">
+
+                <div className="mx-auto max-w-4xl">
+
+                    {/* BACK BUTTON */}
                     <Link
                         href="/menu-items"
-                        className="mb-6 inline-block font-semibold text-purple-700 hover:text-pink-600"
+                        className="inline-flex items-center gap-2 text-sm font-semibold text-purple-600 transition hover:text-purple-900"
                     >
-                        ← Back to Menu Items
+                        <span>←</span>
+                        Back to Menu Items
                     </Link>
 
-                    <h1 className="mb-2 text-3xl font-bold text-purple-900">
-                        Create Reservation
-                    </h1>
+                    {/* PAGE HEADER */}
+                    <div className="mb-8 mt-7">
+                        <p className="text-sm font-bold uppercase tracking-widest text-purple-600">
+                            Restaurant Management
+                        </p>
 
-                    <p className="mb-8 text-gray-600">
-                        Fill in the details below to make a reservation.
+                        <h1 className="mt-2 text-3xl font-bold text-purple-950">
+                            Add Menu Item
+                        </h1>
+
+                        <p className="mt-2 text-purple-600">
+                            Add a new food or drink to your restaurant's pre-order menu.
+                        </p>
+                    </div>
+
+                    {/* FORM CARD */}
+                    <div className="overflow-hidden rounded-2xl border border-purple-100 bg-white shadow-sm">
+
+                        {/* CARD HEADER */}
+                        <div className="border-b border-purple-100 bg-white px-7 py-6">
+                            <div className="flex items-center gap-3">
+                                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-100 text-2xl">
+                                    🍽️
+                                </div>
+
+                                <div>
+                                    <h2 className="text-xl font-bold text-purple-950">
+                                        Menu Item Information
+                                    </h2>
+
+                                    <p className="mt-1 text-sm text-purple-500">
+                                        Fill in the details below.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* FORM BODY */}
+                        <form onSubmit={submit} className="space-y-6 p-7">
+
+                            {/* FOOD NAME */}
+                            <div>
+                                <label
+                                    htmlFor="menu_item_name"
+                                    className="mb-2 block text-sm font-semibold text-purple-950"
+                                >
+                                    Food Name
+                                    <span className="ml-1 text-red-500">*</span>
+                                </label>
+
+                                <input
+                                    id="menu_item_name"
+                                    type="text"
+                                    value={data.menu_item_name}
+                                    onChange={(e) =>
+                                        setData('menu_item_name', e.target.value)
+                                    }
+                                    placeholder="Example: Chicken Adobo"
+                                    className={inputStyle}
+                                    required
+                                />
+
+                                {errors.menu_item_name && (
+                                    <p className="mt-2 text-sm text-red-600">
+                                        {errors.menu_item_name}
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* CATEGORY */}
+                            <div>
+                                <label
+                                    htmlFor="item_category"
+                                    className="mb-2 block text-sm font-semibold text-purple-950"
+                                >
+                                    Food Category
+                                    <span className="ml-1 text-red-500">*</span>
+                                </label>
+
+                                <select
+                                    id="item_category"
+                                    value={data.item_category}
+                                    onChange={(e) =>
+                                        setData('item_category', e.target.value)
+                                    }
+                                    className={inputStyle}
+                                    required
+                                >
+                                    <option value="">Select food category</option>
+                                    <option value="Appetizer">Appetizer</option>
+                                    <option value="Main Course">Main Course</option>
+                                    <option value="Side Dish">Side Dish</option>
+                                    <option value="Dessert">Dessert</option>
+                                    <option value="Beverage">Beverage</option>
+                                </select>
+
+                                {errors.item_category && (
+                                    <p className="mt-2 text-sm text-red-600">
+                                        {errors.item_category}
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* PRICE */}
+                            <div>
+                                <label
+                                    htmlFor="item_price"
+                                    className="mb-2 block text-sm font-semibold text-purple-950"
+                                >
+                                    Item Price (₱)
+                                    <span className="ml-1 text-red-500">*</span>
+                                </label>
+
+                                <div className="relative">
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 font-semibold text-purple-500">
+                                        ₱
+                                    </span>
+
+                                    <input
+                                        id="item_price"
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={data.item_price}
+                                        onChange={(e) =>
+                                            setData('item_price', e.target.value)
+                                        }
+                                        placeholder="0.00"
+                                        className={`${inputStyle} pl-10`}
+                                        required
+                                    />
+                                </div>
+
+                                {errors.item_price && (
+                                    <p className="mt-2 text-sm text-red-600">
+                                        {errors.item_price}
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* INFORMATION */}
+                            <div className="rounded-xl border border-purple-100 bg-purple-50 p-4">
+                                <div className="flex gap-3">
+                                    <span className="text-xl">💡</span>
+
+                                    <div>
+                                        <p className="font-semibold text-purple-900">
+                                            Menu Item Reminder
+                                        </p>
+
+                                        <p className="mt-1 text-sm text-purple-600">
+                                            Make sure the food name, category, and price are correct before saving.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* FORM BUTTONS */}
+                            <div className="flex flex-col-reverse justify-end gap-3 border-t border-purple-100 pt-6 sm:flex-row">
+
+                                <Link
+                                    href="/menu-items"
+                                    className="rounded-xl border border-purple-200 px-7 py-3 text-center font-semibold text-purple-700 transition hover:bg-purple-50"
+                                >
+                                    Cancel
+                                </Link>
+
+                                <button
+                                    type="submit"
+                                    disabled={processing}
+                                    className="rounded-xl bg-purple-700 px-7 py-3 font-semibold text-white shadow-sm transition duration-200 hover:-translate-y-0.5 hover:bg-purple-800 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    {processing
+                                        ? 'Saving Menu Item...'
+                                        : '+ Save Menu Item'}
+                                </button>
+
+                            </div>
+                        </form>
+                    </div>
+
+                    {/* FOOTER */}
+                    <p className="mt-6 text-center text-sm text-purple-400">
+                        Restaurant Management System © 2026
                     </p>
 
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        {/* Customer */}
-                        <div>
-                            <label
-                                htmlFor="customer_id"
-                                className="mb-2 block font-semibold text-gray-700"
-                            >
-                                Customer
-                            </label>
-
-                            <select
-                                id="customer_id"
-                                value={data.customer_id}
-                                onChange={(e) =>
-                                    setData('customer_id', e.target.value)
-                                }
-                                className="w-full rounded-lg border border-gray-300 p-3"
-                                required
-                            >
-                                <option value="">Select customer</option>
-
-                                {customers.map((customer) => (
-                                    <option
-                                        key={customer.id}
-                                        value={customer.id}
-                                    >
-                                        {customer.customer_name} — {customer.customer_number}
-                                    </option>
-                                ))}
-                            </select>
-
-                            {errors.customer_id && (
-                                <p className="mt-1 text-sm text-red-600">
-                                    {errors.customer_id}
-                                </p>
-                            )}
-                        </div>
-
-                        {/* Menu Item */}
-                        <div>
-                            <label
-                                htmlFor="menu_item_id"
-                                className="mb-2 block font-semibold text-gray-700"
-                            >
-                                Menu Item
-                            </label>
-
-                            <select
-                                id="menu_item_id"
-                                value={data.menu_item_id}
-                                onChange={(e) =>
-                                    setData('menu_item_id', e.target.value)
-                                }
-                                className="w-full rounded-lg border border-gray-300 p-3"
-                                required
-                            >
-                                <option value="">Select menu item</option>
-
-                                {menuItems.map((menu) => (
-                                    <option
-                                        key={menu.id}
-                                        value={menu.id}
-                                    >
-                                        {menu.name} — ₱
-                                        {Number(menu.price).toFixed(2)}
-                                    </option>
-                                ))}
-                            </select>
-
-                            {errors.menu_item_id && (
-                                <p className="mt-1 text-sm text-red-600">
-                                    {errors.menu_item_id}
-                                </p>
-                            )}
-                        </div>
-
-                        {/* Restaurant Table */}
-                        <div>
-                            <label
-                                htmlFor="restaurant_table_id"
-                                className="mb-2 block font-semibold text-gray-700"
-                            >
-                                Restaurant Table
-                            </label>
-
-                            <select
-                                id="restaurant_table_id"
-                                value={data.restaurant_table_id}
-                                onChange={(e) =>
-                                    setData(
-                                        'restaurant_table_id',
-                                        e.target.value
-                                    )
-                                }
-                                className="w-full rounded-lg border border-gray-300 p-3"
-                                required
-                            >
-                                <option value="">Select table</option>
-
-                                {restaurantTables.map((table) => (
-                                    <option
-                                        key={table.id}
-                                        value={table.id}
-                                    >
-                                        Table {table.table_number} — Capacity:{' '}
-                                        {table.table_capacity}
-                                    </option>
-                                ))}
-                            </select>
-
-                            {errors.restaurant_table_id && (
-                                <p className="mt-1 text-sm text-red-600">
-                                    {errors.restaurant_table_id}
-                                </p>
-                            )}
-                        </div>
-
-                        {/* Reservation Date */}
-                        <div>
-                            <label
-                                htmlFor="reservation_date"
-                                className="mb-2 block font-semibold text-gray-700"
-                            >
-                                Reservation Date
-                            </label>
-
-                            <input
-                                id="reservation_date"
-                                type="date"
-                                value={data.reservation_date}
-                                onChange={(e) =>
-                                    setData('reservation_date', e.target.value)
-                                }
-                                className="w-full rounded-lg border border-gray-300 p-3"
-                                required
-                            />
-
-                            {errors.reservation_date && (
-                                <p className="mt-1 text-sm text-red-600">
-                                    {errors.reservation_date}
-                                </p>
-                            )}
-                        </div>
-
-                        {/* Reservation Time */}
-                        <div>
-                            <label
-                                htmlFor="reservation_time"
-                                className="mb-2 block font-semibold text-gray-700"
-                            >
-                                Reservation Time
-                            </label>
-
-                            <input
-                                id="reservation_time"
-                                type="time"
-                                value={data.reservation_time}
-                                onChange={(e) =>
-                                    setData('reservation_time', e.target.value)
-                                }
-                                className="w-full rounded-lg border border-gray-300 p-3"
-                                required
-                            />
-
-                            {errors.reservation_time && (
-                                <p className="mt-1 text-sm text-red-600">
-                                    {errors.reservation_time}
-                                </p>
-                            )}
-                        </div>
-
-                        {/* Number of Guests */}
-                        <div>
-                            <label
-                                htmlFor="number_of_guests"
-                                className="mb-2 block font-semibold text-gray-700"
-                            >
-                                Number of Guests
-                            </label>
-
-                            <input
-                                id="number_of_guests"
-                                type="number"
-                                min="1"
-                                value={data.number_of_guests}
-                                onChange={(e) =>
-                                    setData('number_of_guests', e.target.value)
-                                }
-                                className="w-full rounded-lg border border-gray-300 p-3"
-                                required
-                            />
-
-                            {errors.number_of_guests && (
-                                <p className="mt-1 text-sm text-red-600">
-                                    {errors.number_of_guests}
-                                </p>
-                            )}
-                        </div>
-
-                        {/* Notes */}
-                        <div>
-                            <label
-                                htmlFor="notes"
-                                className="mb-2 block font-semibold text-gray-700"
-                            >
-                                Notes (Optional)
-                            </label>
-
-                            <textarea
-                                id="notes"
-                                value={data.notes}
-                                onChange={(e) =>
-                                    setData('notes', e.target.value)
-                                }
-                                rows={3}
-                                className="w-full rounded-lg border border-gray-300 p-3"
-                                placeholder="Any special requests?"
-                            />
-
-                            {errors.notes && (
-                                <p className="mt-1 text-sm text-red-600">
-                                    {errors.notes}
-                                </p>
-                            )}
-                        </div>
-
-                        {/* Submit */}
-                        <button
-                            type="submit"
-                            disabled={processing}
-                            className="w-full rounded-lg bg-purple-700 px-6 py-3 font-semibold text-white transition hover:bg-pink-600 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                            {processing
-                                ? 'Creating Reservation...'
-                                : 'Create Reservation'}
-                        </button>
-                    </form>
                 </div>
             </div>
         </>
