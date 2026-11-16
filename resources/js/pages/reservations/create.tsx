@@ -28,7 +28,7 @@ interface ReservationItem {
 }
 
 interface ReservationFormData {
-    [key: string]: any;
+    [key: string]: string | number | ReservationItem[];
     customer_name: string;
     contact_number: string;
     restaurant_table_id: string;
