@@ -7,6 +7,7 @@ use App\Http\Requests\UpdateCustomerRequest;
 use App\Models\Customer;
 use App\Services\CustomerService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -19,17 +20,17 @@ class CustomerController extends Controller
     /**
      * Display all customers.
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $customers = $this->service->paginate(
-            request('search'),
+            $request->string('search')->toString(),
             10
         );
 
         return Inertia::render('customers/index', [
             'customers' => $customers,
             'filters' => [
-                'search' => request('search', ''),
+                'search' => $request->input('search', ''),
             ],
         ]);
     }
@@ -43,7 +44,7 @@ class CustomerController extends Controller
     }
 
     /**
-     * Store a newly created customer.
+     * Store a new customer.
      */
     public function store(
         StoreCustomerRequest $request

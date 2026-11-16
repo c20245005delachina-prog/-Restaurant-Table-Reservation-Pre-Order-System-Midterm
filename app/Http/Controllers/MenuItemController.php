@@ -3,15 +3,26 @@
 namespace App\Http\Controllers;
 
 use App\Models\MenuItem;
+use App\Services\MenuItemService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class MenuItemController extends Controller
 {
-    public function index()
+    protected MenuItemService $menuItemService;
+
+    public function __construct(MenuItemService $menuItemService)
+    {
+        $this->menuItemService = $menuItemService;
+    }
+
+    public function index(Request $request)
     {
         return Inertia::render('menu-items/index', [
-            'menuItems' => MenuItem::latest()->paginate(10),
+            'menuItems' => $this->menuItemService->paginate(
+                $request->input('search'),
+                10
+            ),
         ]);
     }
 
@@ -26,9 +37,15 @@ class MenuItemController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'category' => ['required', 'string', 'max:100'],
             'price' => ['required', 'numeric', 'min:0'],
+        ], [
+            'name.required' => 'Please enter the menu item name.',
+            'category.required' => 'Please select a food category.',
+            'price.required' => 'Please enter the item price.',
+            'price.numeric' => 'The price must be a valid number.',
+            'price.min' => 'The price cannot be negative.',
         ]);
 
-        MenuItem::create($validated);
+        $this->menuItemService->createMenuItem($validated);
 
         return redirect()
             ->route('menu-items.index')

@@ -19,7 +19,7 @@ class MenuItemService
                         ->orWhere('category', 'like', "%{$search}%");
                 });
             })
-            ->orderBy('name')
+            ->latest()
             ->paginate($perPage)
             ->withQueryString();
     }
@@ -28,8 +28,8 @@ class MenuItemService
     {
         return DB::transaction(function () use ($data) {
             return MenuItem::create([
-                'name' => $data['name'],
-                'category' => $data['category'],
+                'name' => trim(strip_tags($data['name'])),
+                'category' => trim(strip_tags($data['category'])),
                 'price' => $data['price'],
             ]);
         });
@@ -43,8 +43,8 @@ class MenuItemService
             $menuItem = MenuItem::findOrFail($id);
 
             $menuItem->update([
-                'name' => $data['name'],
-                'category' => $data['category'],
+                'name' => trim(strip_tags($data['name'])),
+                'category' => trim(strip_tags($data['category'])),
                 'price' => $data['price'],
             ]);
 
@@ -54,8 +54,10 @@ class MenuItemService
 
     public function deleteMenuItem(int $id): void
     {
-        $menuItem = MenuItem::findOrFail($id);
+        DB::transaction(function () use ($id) {
+            $menuItem = MenuItem::findOrFail($id);
 
-        $menuItem->delete();
+            $menuItem->delete();
+        });
     }
 }

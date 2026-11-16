@@ -17,7 +17,12 @@ class UpdateCustomerRequest extends FormRequest
         $customer = $this->route('customer');
 
         return [
-            'customer_name' => ['required', 'string', 'max:255'],
+            'customer_name' => [
+                'required',
+                'string',
+                'max:255',
+            ],
+
             'customer_number' => [
                 'required',
                 'string',
@@ -25,6 +30,15 @@ class UpdateCustomerRequest extends FormRequest
                 Rule::unique('customers', 'customer_number')
                     ->ignore($customer),
             ],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'customer_name.required' => 'Please enter the customer name.',
+            'customer_number.required' => 'Please enter the customer number.',
+            'customer_number.unique' => 'This customer number is already registered.',
         ];
     }
 }

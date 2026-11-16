@@ -1,19 +1,20 @@
-
 import { Head, Link, useForm } from '@inertiajs/react';
 import { FormEvent } from 'react';
 
 export default function Create() {
-    const { data, setData, post, processing, errors, reset } = useForm({
-        menu_item_name: '',
-        item_category: '',
-        item_price: '',
+    const { data, setData, post, processing, errors } = useForm({
+        name: '',
+        category: '',
+        price: '',
     });
 
     const submit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
         post('/menu-items', {
-            onSuccess: () => reset(),
+            onSuccess: () => {
+                // Laravel redirects to the menu list.
+            },
         });
     };
 
@@ -25,19 +26,15 @@ export default function Create() {
             <Head title="Add Menu Item" />
 
             <div className="min-h-screen bg-purple-50 px-6 py-10">
-
                 <div className="mx-auto max-w-4xl">
 
-                    {/* BACK BUTTON */}
                     <Link
                         href="/menu-items"
-                        className="inline-flex items-center gap-2 text-sm font-semibold text-purple-600 transition hover:text-purple-900"
+                        className="inline-flex items-center gap-2 text-sm font-semibold text-purple-600 hover:text-purple-900"
                     >
-                        <span>←</span>
-                        Back to Menu Items
+                        ← Back to Menu Items
                     </Link>
 
-                    {/* PAGE HEADER */}
                     <div className="mb-8 mt-7">
                         <p className="text-sm font-bold uppercase tracking-widest text-purple-600">
                             Restaurant Management
@@ -52,11 +49,9 @@ export default function Create() {
                         </p>
                     </div>
 
-                    {/* FORM CARD */}
                     <div className="overflow-hidden rounded-2xl border border-purple-100 bg-white shadow-sm">
 
-                        {/* CARD HEADER */}
-                        <div className="border-b border-purple-100 bg-white px-7 py-6">
+                        <div className="border-b border-purple-100 px-7 py-6">
                             <div className="flex items-center gap-3">
                                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-100 text-2xl">
                                     🍽️
@@ -74,34 +69,32 @@ export default function Create() {
                             </div>
                         </div>
 
-                        {/* FORM BODY */}
                         <form onSubmit={submit} className="space-y-6 p-7">
 
-                            {/* FOOD NAME */}
+                            {/* MENU ITEM NAME */}
                             <div>
                                 <label
-                                    htmlFor="menu_item_name"
+                                    htmlFor="name"
                                     className="mb-2 block text-sm font-semibold text-purple-950"
                                 >
-                                    Food Name
-                                    <span className="ml-1 text-red-500">*</span>
+                                    Food Name *
                                 </label>
 
                                 <input
-                                    id="menu_item_name"
+                                    id="name"
                                     type="text"
-                                    value={data.menu_item_name}
+                                    value={data.name}
                                     onChange={(e) =>
-                                        setData('menu_item_name', e.target.value)
+                                        setData('name', e.target.value)
                                     }
                                     placeholder="Example: Chicken Adobo"
                                     className={inputStyle}
                                     required
                                 />
 
-                                {errors.menu_item_name && (
+                                {errors.name && (
                                     <p className="mt-2 text-sm text-red-600">
-                                        {errors.menu_item_name}
+                                        {errors.name}
                                     </p>
                                 )}
                             </div>
@@ -109,23 +102,24 @@ export default function Create() {
                             {/* CATEGORY */}
                             <div>
                                 <label
-                                    htmlFor="item_category"
+                                    htmlFor="category"
                                     className="mb-2 block text-sm font-semibold text-purple-950"
                                 >
-                                    Food Category
-                                    <span className="ml-1 text-red-500">*</span>
+                                    Food Category *
                                 </label>
 
                                 <select
-                                    id="item_category"
-                                    value={data.item_category}
+                                    id="category"
+                                    value={data.category}
                                     onChange={(e) =>
-                                        setData('item_category', e.target.value)
+                                        setData('category', e.target.value)
                                     }
                                     className={inputStyle}
                                     required
                                 >
-                                    <option value="">Select food category</option>
+                                    <option value="">
+                                        Select food category
+                                    </option>
                                     <option value="Appetizer">Appetizer</option>
                                     <option value="Main Course">Main Course</option>
                                     <option value="Side Dish">Side Dish</option>
@@ -133,9 +127,9 @@ export default function Create() {
                                     <option value="Beverage">Beverage</option>
                                 </select>
 
-                                {errors.item_category && (
+                                {errors.category && (
                                     <p className="mt-2 text-sm text-red-600">
-                                        {errors.item_category}
+                                        {errors.category}
                                     </p>
                                 )}
                             </div>
@@ -143,11 +137,10 @@ export default function Create() {
                             {/* PRICE */}
                             <div>
                                 <label
-                                    htmlFor="item_price"
+                                    htmlFor="price"
                                     className="mb-2 block text-sm font-semibold text-purple-950"
                                 >
-                                    Item Price (₱)
-                                    <span className="ml-1 text-red-500">*</span>
+                                    Item Price (₱) *
                                 </label>
 
                                 <div className="relative">
@@ -156,13 +149,13 @@ export default function Create() {
                                     </span>
 
                                     <input
-                                        id="item_price"
+                                        id="price"
                                         type="number"
                                         min="0"
                                         step="0.01"
-                                        value={data.item_price}
+                                        value={data.price}
                                         onChange={(e) =>
-                                            setData('item_price', e.target.value)
+                                            setData('price', e.target.value)
                                         }
                                         placeholder="0.00"
                                         className={`${inputStyle} pl-10`}
@@ -170,14 +163,14 @@ export default function Create() {
                                     />
                                 </div>
 
-                                {errors.item_price && (
+                                {errors.price && (
                                     <p className="mt-2 text-sm text-red-600">
-                                        {errors.item_price}
+                                        {errors.price}
                                     </p>
                                 )}
                             </div>
 
-                            {/* INFORMATION */}
+                            {/* REMINDER */}
                             <div className="rounded-xl border border-purple-100 bg-purple-50 p-4">
                                 <div className="flex gap-3">
                                     <span className="text-xl">💡</span>
@@ -194,12 +187,12 @@ export default function Create() {
                                 </div>
                             </div>
 
-                            {/* FORM BUTTONS */}
+                            {/* BUTTONS */}
                             <div className="flex flex-col-reverse justify-end gap-3 border-t border-purple-100 pt-6 sm:flex-row">
 
                                 <Link
                                     href="/menu-items"
-                                    className="rounded-xl border border-purple-200 px-7 py-3 text-center font-semibold text-purple-700 transition hover:bg-purple-50"
+                                    className="rounded-xl border border-purple-200 px-7 py-3 text-center font-semibold text-purple-700 hover:bg-purple-50"
                                 >
                                     Cancel
                                 </Link>
@@ -207,7 +200,7 @@ export default function Create() {
                                 <button
                                     type="submit"
                                     disabled={processing}
-                                    className="rounded-xl bg-purple-700 px-7 py-3 font-semibold text-white shadow-sm transition duration-200 hover:-translate-y-0.5 hover:bg-purple-800 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="rounded-xl bg-purple-700 px-7 py-3 font-semibold text-white shadow-sm transition hover:bg-purple-800 disabled:cursor-not-allowed disabled:opacity-50"
                                 >
                                     {processing
                                         ? 'Saving Menu Item...'
@@ -218,7 +211,6 @@ export default function Create() {
                         </form>
                     </div>
 
-                    {/* FOOTER */}
                     <p className="mt-6 text-center text-sm text-purple-400">
                         Restaurant Management System © 2026
                     </p>

@@ -38,7 +38,7 @@ class StoreReservationRequest extends FormRequest
     {
         return [
             'customer_name.required' => 'Customer name is required.',
-            'contact_number.required' => 'Customer contact number is required.',
+            'customer_number.required' => 'Customer contact number is required.',
             'restaurant_table_id.exists' => 'Please select a valid restaurant table.',
             'reservation_time.after' => 'The reservation must be in the future.',
             'party_size.min' => 'Party size must be at least one.',

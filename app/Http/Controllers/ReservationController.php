@@ -27,9 +27,9 @@ class ReservationController extends Controller
     {
         $reservations = Reservation::query()
             ->with([
-                'customer:id,customer_name,contact_number',
+                'customer:id,customer_name,customer_number',
                 'restaurantTable:id,table_number,table_capacity',
-                'reservationItems.menuItem:id,name,category,price',
+                'reservationItems.menuItem',
             ])
             ->latest('reservation_time')
             ->paginate(10)
@@ -44,44 +44,31 @@ class ReservationController extends Controller
      * Show the form for creating a reservation.
      */
     public function create(): Response
-    {
-        return Inertia::render('reservations/create', [
-            'customers' => Customer::query()
-                ->select(['id', 'customer_name', 'customer_number'])
-                ->orderBy('customer_name')
-                ->get(),
+{
+    return Inertia::render('reservations/create', [
+        'customers' => Customer::select(
+            'id',
+            'customer_name',
+            'customer_number'
+        )
+            ->orderBy('customer_name')
+            ->get(),
 
-            'tables' => RestaurantTable::query()
-                ->select(['id', 'table_number', 'table_capacity'])
-                ->orderBy('table_number')
-                ->get(),
-
-            'menuItems' => MenuItem::query()
-                ->select([
-                    'id',
-                    'name',
-                    'category',
-                    'price',
-                ])
-                ->orderBy('name',)
-                ->get(),
-        ]);
-    }
+        // Keep your existing restaurant tables and menu items props here.
+    ]);
+}
 
     /**
      * Store a new reservation.
      */
-    public function store(
-        StoreReservationRequest $request
-    ): RedirectResponse {
-        $this->service->createReservation(
-            $request->validated()
-        );
+     public function store(StoreReservationRequest $request): RedirectResponse
+{
+    $this->service->createReservation($request->validated());
 
-        return to_route('reservations.index')
-            ->with('success', 'Reservation created successfully.');
-    }
-
+    return redirect()
+        ->route('reservations.index')
+        ->with('success', 'Reservation saved successfully!');
+}
     /**
      * Display one reservation and its details.
      */
@@ -129,11 +116,11 @@ class ReservationController extends Controller
             'menuItems' => MenuItem::query()
                 ->select([
                     'id',
-                    'name',
-                    'category',
-                    'price',
+                    'name as menu_item_name',
+                    'category as item_category',
+                    'price as item_price',
                 ])
-                ->orderBy('name')
+                ->orderBy('name', 'asc')
                 ->get(),
         ]);
     }

@@ -1,673 +1,588 @@
-import { Head, Link, useForm } from '@inertiajs/react';
-import { FormEvent, useMemo } from 'react';
 
-type Customer = {
+import { Head, Link, useForm } from '@inertiajs/react';
+import { useState, type FormEvent } from 'react';
+
+
+interface Customer {
     id: number;
     customer_name: string;
     customer_number: string;
-};
+}
 
-type RestaurantTable = {
+interface RestaurantTable {
     id: number;
-    table_number: string | number;
+    table_number: string;
     table_capacity: number;
-};
+}
 
-type MenuItem = {
+interface MenuItem {
     id: number;
-    name: string;
-    category: string;
-    price: number | string;
-};
+    menu_item_name: string;
+    item_category: string;
+    item_price: number | string;
+}
 
-type OrderItem = {
-    menu_item_id: string;
+interface ReservationItem {
+    menu_item_id: number;
     quantity: number;
-};
+}
 
-type ReservationForm = {
-    customer_id: string;
+interface ReservationFormData {
+    [key: string]: any;
+    customer_name: string;
+    contact_number: string;
     restaurant_table_id: string;
     reservation_time: string;
     party_size: number;
     deposit_paid: number;
-    items: OrderItem[];
-};
+    items: ReservationItem[];
+}
 
-type Props = {
+interface Props {
     customers: Customer[];
     tables: RestaurantTable[];
     menuItems: MenuItem[];
-};
+}
 
 export default function CreateReservation({
-    customers = [],
-    tables = [],
-    menuItems = [],
+    customers,
+    tables,
+    menuItems,
 }: Props) {
-    const { data, setData, post, processing, errors } =
-        useForm<ReservationForm>({
-            customer_id: '',
-            restaurant_table_id: '',
-            reservation_time: '',
-            party_size: 1,
-            deposit_paid: 0,
-            items: [{ menu_item_id: '', quantity: 1 }],
-        });
+    const [selectedCustomer, setSelectedCustomer] = useState('');
 
-    const selectedTable = tables.find(
-        (table) =>
-            String(table.id) === String(data.restaurant_table_id),
-    );
+    const form = useForm<ReservationFormData>({
+        customer_name: '',
+        contact_number: '',
+        restaurant_table_id: '',
+        reservation_time: '',
+        party_size: 1,
+        deposit_paid: 0,
+        items: [{ menu_item_id: 0, quantity: 1 }],
+    });
 
-    const totalAmount = useMemo(() => {
-        return data.items.reduce((total, item) => {
-            const selectedItem = menuItems.find(
-                (menuItem) =>
-                    String(menuItem.id) === String(item.menu_item_id),
-            );
+    const inputClass =
+        'w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 outline-none transition focus:border-purple-400 focus:ring-2 focus:ring-purple-100';
 
-            const price = Number(selectedItem?.price ?? 0);
-            const quantity = Number(item.quantity) || 0;
+    const labelClass =
+        'mb-2 block text-sm font-medium text-gray-700';
 
-            return total + price * quantity;
-        }, 0);
-    }, [data.items, menuItems]);
+    const errorFor = (key: string) =>
+        (form.errors as Record<string, string>)[key];
 
-    const minimumDeposit = Math.round(totalAmount * 20) / 100;
+    const totalAmount = form.data.items.reduce((total, item) => {
+        const selectedItem = menuItems.find(
+            (menu) => menu.id === Number(item.menu_item_id)
+        );
 
-    const peso = (amount: number) =>
-        `₱${amount.toLocaleString('en-PH', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-        })}`;
+        return total +
+            (selectedItem
+                ? Number(selectedItem.item_price) * item.quantity
+                : 0);
+    }, 0);
+
+    const addItem = () => {
+        form.setData('items', [
+            ...form.data.items,
+            { menu_item_id: 0, quantity: 1 },
+        ]);
+    };
+
+    const removeItem = (index: number) => {
+        if (form.data.items.length === 1) return;
+
+        form.setData(
+            'items',
+            form.data.items.filter((_, i) => i !== index)
+        );
+    };
 
     const updateItem = (
         index: number,
-        field: keyof OrderItem,
-        value: string | number,
+        field: keyof ReservationItem,
+        value: number
     ) => {
-        const updatedItems = [...data.items];
+        const updatedItems = [...form.data.items];
 
         updatedItems[index] = {
             ...updatedItems[index],
             [field]: value,
         };
 
-        setData('items', updatedItems);
+        form.setData('items', updatedItems);
     };
 
-    const addItem = () => {
-        setData('items', [
-            ...data.items,
-            { menu_item_id: '', quantity: 1 },
-        ]);
-    };
-
-    const removeItem = (index: number) => {
-        if (data.items.length <= 1) return;
-
-        setData(
-            'items',
-            data.items.filter((_, itemIndex) => itemIndex !== index),
-        );
-    };
-
-    const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    const handleSubmit = (event: FormEvent) => {
         event.preventDefault();
 
-        post('/reservations');
+        form.post('/reservations', {
+            preserveScroll: true,
+        });
     };
 
     return (
         <>
             <Head title="Create Reservation" />
 
-            <div className="min-h-screen bg-pink-50 px-4 py-10 text-purple-950">
-                <div className="mx-auto max-w-4xl">
-                    {/* PAGE HEADER */}
-                    <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+            <div className="min-h-screen bg-[#faf9fc] px-4 py-8 sm:px-8">
+                <div className="mx-auto max-w-5xl">
+
+                    {/* Header */}
+                    <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                         <div>
-                            <p className="mb-2 font-semibold text-purple-600">
-                                RESTAURANT RESERVATION
+                            <p className="mb-2 text-sm font-semibold tracking-widest text-purple-500">
+                                RESERVATION MANAGEMENT
                             </p>
 
-                            <h1 className="text-3xl font-extrabold text-purple-800">
+                            <h1 className="text-3xl font-bold tracking-tight text-gray-900">
                                 Create Reservation
                             </h1>
 
-                            <p className="mt-2 text-purple-600">
-                                Reserve your table and pre-order your
-                                favorite meals.
+                            <p className="mt-2 text-sm text-gray-500">
+                                Enter customer and reservation information below.
                             </p>
                         </div>
 
-                        <Link
-                            href="/reservations"
-                            className="rounded-lg border border-purple-200 bg-white px-4 py-2 font-semibold text-purple-700 transition hover:bg-pink-100"
-                        >
-                            ← Back to Reservations
-                        </Link>
+                        <div className="flex flex-wrap gap-2">
+                            <Link
+                                href="/dashboard"
+                                className="inline-flex items-center justify-center rounded-xl bg-purple-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-purple-700"
+                            >
+                                ← Back to Dashboard
+                            </Link>
+
+                            <Link
+                                href="/reservations"
+                                className="inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-medium text-gray-600 transition hover:bg-purple-50 hover:text-purple-700"
+                            >
+                                Reservations
+                            </Link>
+                        </div>
                     </div>
 
-                    <form
-                        onSubmit={handleSubmit}
-                        className="space-y-6"
-                    >
-                        {/* 1. CUSTOMER INFORMATION */}
-                        <section className="rounded-2xl border border-purple-100 bg-white p-6 shadow-sm">
-                            <div className="mb-5 flex items-center gap-3">
-                                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-100 font-bold text-purple-800">
-                                    1
-                                </div>
+                    <form onSubmit={handleSubmit} className="space-y-6">
 
-                                <div>
-                                    <h2 className="text-xl font-bold text-purple-800">
-                                        Customer Information
-                                    </h2>
-                                    <p className="text-sm text-purple-500">
-                                        Choose your customer record.
-                                    </p>
-                                </div>
+                      {Object.keys(form.errors).length > 0 && (
+    <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <p className="mb-2 font-semibold">
+            Please correct the following errors:
+        </p>
+
+        <ul className="list-inside list-disc space-y-1">
+            {Object.entries(form.errors).map(([field, message]) => (
+                <li key={field}>{message}</li>
+            ))}
+        </ul>
+    </div>
+)}
+                    
+                        {/* Customer Information */}
+                        <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+                            <div className="mb-6">
+                                <h2 className="text-lg font-semibold text-gray-900">
+                                    Customer Information
+                                </h2>
+
+                                <p className="mt-1 text-sm text-gray-500">
+                                    Select an existing customer or enter their details.
+                                </p>
                             </div>
 
-                            <label
-                                htmlFor="customer_id"
-                                className="mb-2 block font-semibold text-purple-900"
-                            >
-                                Select Customer
-                            </label>
-
-                            <select
-                                id="customer_id"
-                                value={data.customer_id}
-                                onChange={(event) =>
-                                    setData('customer_id', event.target.value)
-                                }
-                                className="w-full rounded-xl border border-purple-200 bg-white p-3 outline-none transition focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
-                                required
-                            >
-                                <option value="">Select customer</option>
-
-                                {customers.map((customer) => (
-                                    <option
-                                        key={customer.id}
-                                        value={customer.id}
-                                    >
-                                        {customer.customer_name} —{' '}
-                                        {customer.customer_number}
-                                    </option>
-                                ))}
-                            </select>
-
-                            {errors.customer_id && (
-                                <p className="mt-2 text-sm text-red-600">
-                                    {errors.customer_id}
-                                </p>
-                            )}
-
-                            {customers.length === 0 && (
-                                <p className="mt-2 rounded-lg bg-pink-50 p-3 text-sm text-purple-700">
-                                    No customers found. Please add a customer
-                                    first.
-                                </p>
-                            )}
-                        </section>
-
-                        {/* 2. RESERVATION DETAILS */}
-                        <section className="rounded-2xl border border-purple-100 bg-white p-6 shadow-sm">
-                            <div className="mb-5 flex items-center gap-3">
-                                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-100 font-bold text-purple-800">
-                                    2
-                                </div>
-
-                                <div>
-                                    <h2 className="text-xl font-bold text-purple-800">
-                                        Reservation Details
-                                    </h2>
-                                    <p className="text-sm text-purple-500">
-                                        Choose a table, date, and party size.
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="grid gap-5 sm:grid-cols-2">
-                                <div>
-                                    <label
-                                        htmlFor="restaurant_table_id"
-                                        className="mb-2 block font-semibold text-purple-900"
-                                    >
-                                        Restaurant Table
+                            <div className="grid gap-5 md:grid-cols-2">
+                                <div className="md:col-span-2">
+                                    <label className={labelClass}>
+                                        Existing Customer
                                     </label>
 
                                     <select
-                                        id="restaurant_table_id"
-                                        value={data.restaurant_table_id}
-                                        onChange={(event) =>
-                                            setData(
+                                        value={selectedCustomer}
+                                        onChange={(e) => {
+                                            const id = e.target.value;
+                                            setSelectedCustomer(id);
+
+                                            const customer = customers.find(
+                                                (item) => item.id === Number(id)
+                                            );
+
+                                            form.setData((data) => ({
+                                                ...data,
+                                                customer_name:
+                                                    customer?.customer_name ?? '',
+                                                contact_number:
+                                                    customer?.customer_number ?? '',
+                                            }));
+                                        }}
+                                        className={inputClass}
+                                    >
+                                        <option value="">
+                                            Select a customer (optional)
+                                        </option>
+
+                                        {customers.map((customer) => (
+                                            <option
+                                                key={customer.id}
+                                                value={customer.id}
+                                            >
+                                                {customer.customer_name} — {customer.customer_number}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className={labelClass}>
+                                        Customer Name *
+                                    </label>
+
+                                    <input
+                                        type="text"
+                                        value={form.data.contact_number}
+                                        onChange={(e) =>
+                                            form.setData('contact_number', e.target.value)
+                                        }
+                                        placeholder="Enter customer name"
+                                        className={inputClass}
+                                    />
+
+                                    {errorFor('customer_name') && (
+                                        <p className="mt-1 text-xs text-red-500">
+                                            {errorFor('customer_name')}
+                                        </p>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <label className={labelClass}>
+                                        Contact Number *
+                                    </label>
+
+                                    <input
+                                        type="text"
+                                        value={form.data.contact_number}
+                                        onChange={(e) =>
+                                            form.setData('contact_number', e.target.value)
+                                        }
+                                        placeholder="09XXXXXXXXX"
+                                        className={inputClass}
+                                    />
+
+                                    {errorFor('contact_number') && (
+                                        <p className="mt-1 text-xs text-red-500">
+                                            {errorFor('contact_number')}
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* Reservation Details */}
+                        <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+                            <div className="mb-6">
+                                <h2 className="text-lg font-semibold text-gray-900">
+                                    Reservation Details
+                                </h2>
+
+                                <p className="mt-1 text-sm text-gray-500">
+                                    Choose a table, date, and number of guests.
+                                </p>
+                            </div>
+
+                            <div className="grid gap-5 md:grid-cols-2">
+                                <div>
+                                    <label className={labelClass}>
+                                        Restaurant Table *
+                                    </label>
+
+                                    <select
+                                        value={form.data.restaurant_table_id}
+                                        onChange={(e) =>
+                                            form.setData(
                                                 'restaurant_table_id',
-                                                event.target.value,
+                                                e.target.value
                                             )
                                         }
-                                        className="w-full rounded-xl border border-purple-200 bg-white p-3 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
-                                        required
+                                        className={inputClass}
                                     >
-                                        <option value="">Select table</option>
+                                        <option value="">Select a table</option>
 
                                         {tables.map((table) => (
                                             <option
                                                 key={table.id}
                                                 value={table.id}
                                             >
-                                                Table {table.table_number} —
-                                                Capacity: {table.table_capacity}
+                                                Table {table.table_number} — Capacity: {table.table_capacity}
                                             </option>
                                         ))}
                                     </select>
 
-                                    {errors.restaurant_table_id && (
-                                        <p className="mt-2 text-sm text-red-600">
-                                            {errors.restaurant_table_id}
-                                        </p>
-                                    )}
-
-                                    {tables.length === 0 && (
-                                        <p className="mt-2 text-sm text-purple-600">
-                                            No tables available. Add a
-                                            restaurant table first.
+                                    {errorFor('restaurant_table_id') && (
+                                        <p className="mt-1 text-xs text-red-500">
+                                            {errorFor('restaurant_table_id')}
                                         </p>
                                     )}
                                 </div>
 
                                 <div>
-                                    <label
-                                        htmlFor="party_size"
-                                        className="mb-2 block font-semibold text-purple-900"
-                                    >
-                                        Party Size
+                                    <label className={labelClass}>
+                                        Reservation Date & Time *
                                     </label>
 
                                     <input
-                                        id="party_size"
-                                        type="number"
-                                        min="1"
-                                        max={
-                                            selectedTable?.table_capacity ??
-                                            undefined
-                                        }
-                                        value={data.party_size}
-                                        onChange={(event) =>
-                                            setData(
-                                                'party_size',
-                                                Number(event.target.value),
+                                        type="datetime-local"
+                                        value={form.data.reservation_time}
+                                        onChange={(e) =>
+                                            form.setData(
+                                                'reservation_time',
+                                                e.target.value
                                             )
                                         }
-                                        className="w-full rounded-xl border border-purple-200 p-3 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
-                                        required
+                                        className={inputClass}
                                     />
 
-                                    {errors.party_size && (
-                                        <p className="mt-2 text-sm text-red-600">
-                                            {errors.party_size}
+                                    {errorFor('reservation_time') && (
+                                        <p className="mt-1 text-xs text-red-500">
+                                            {errorFor('reservation_time')}
                                         </p>
                                     )}
-
-                                    {selectedTable &&
-                                        data.party_size >
-                                            Number(selectedTable.table_capacity) && (
-                                            <p className="mt-2 text-sm text-red-600">
-                                                This table can accommodate only{' '}
-                                                {selectedTable.table_capacity}{' '}
-                                                people.
-                                            </p>
-                                        )}
                                 </div>
 
-                                <div className="sm:col-span-2">
-                                    <label
-                                        htmlFor="reservation_time"
-                                        className="mb-2 block font-semibold text-purple-900"
-                                    >
-                                        Reservation Date and Time
+                                <div>
+                                    <label className={labelClass}>
+                                        Number of Guests *
                                     </label>
 
                                     <input
-                                        id="reservation_time"
-                                        type="datetime-local"
-                                        value={data.reservation_time}
-                                        min={new Date(
-                                            Date.now() -
-                                                new Date().getTimezoneOffset() *
-                                                    60000,
-                                        )
-                                            .toISOString()
-                                            .slice(0, 16)}
-                                        onChange={(event) =>
-                                            setData(
-                                                'reservation_time',
-                                                event.target.value,
+                                        type="number"
+                                        min="1"
+                                        value={form.data.party_size}
+                                        onChange={(e) =>
+                                            form.setData(
+                                                'party_size',
+                                                Number(e.target.value)
                                             )
                                         }
-                                        className="w-full rounded-xl border border-purple-200 p-3 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
-                                        required
+                                        className={inputClass}
                                     />
 
-                                    {errors.reservation_time && (
-                                        <p className="mt-2 text-sm text-red-600">
-                                            {errors.reservation_time}
+                                    {errorFor('party_size') && (
+                                        <p className="mt-1 text-xs text-red-500">
+                                            {errorFor('party_size')}
                                         </p>
                                     )}
                                 </div>
                             </div>
                         </section>
 
-                        {/* 3. PRE-ORDER MENU */}
-                        <section className="rounded-2xl border border-purple-100 bg-white p-6 shadow-sm">
-                            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-                                <div className="flex items-center gap-3">
-                                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-100 font-bold text-purple-800">
-                                        3
-                                    </div>
+                        {/* Pre-Order Items */}
+                        <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+                            <div className="mb-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+                                <div>
+                                    <h2 className="text-lg font-semibold text-gray-900">
+                                        Pre-Order Items
+                                    </h2>
 
-                                    <div>
-                                        <h2 className="text-xl font-bold text-purple-800">
-                                            Pre-Order Menu
-                                        </h2>
-                                        <p className="text-sm text-purple-500">
-                                            Select menu items and quantities.
-                                        </p>
-                                    </div>
+                                    <p className="mt-1 text-sm text-gray-500">
+                                        Add menu items and specify their quantities.
+                                    </p>
                                 </div>
 
                                 <button
                                     type="button"
                                     onClick={addItem}
-                                    className="rounded-xl bg-purple-700 px-4 py-2 font-semibold text-white transition hover:bg-purple-800"
+                                    className="rounded-xl bg-purple-50 px-4 py-2.5 text-sm font-semibold text-purple-700 transition hover:bg-purple-100"
                                 >
                                     + Add Item
                                 </button>
                             </div>
 
-                            {menuItems.length === 0 && (
-                                <div className="rounded-xl border border-pink-200 bg-pink-50 p-4 text-purple-800">
-                                    <p className="font-semibold">
-                                        No menu items received.
-                                    </p>
-                                    <p className="mt-1 text-sm">
-                                        Check the MenuItem model and
-                                        ReservationController create method.
-                                    </p>
-                                </div>
-                            )}
-
-                            <div className="space-y-5">
-                                {data.items.map((item, index) => {
+                            <div className="space-y-4">
+                                {(form.data.items ?? []).map((item, index) => {
                                     const selectedMenuItem = menuItems.find(
-                                        (menuItem) =>
-                                            String(menuItem.id) ===
-                                            String(item.menu_item_id),
+                                        (menu) =>
+                                            menu.id === Number(item.menu_item_id)
                                     );
 
-                                    const unitPrice = Number(
-                                        selectedMenuItem?.price ?? 0,
-                                    );
-
-                                    const lineTotal =
-                                        unitPrice *
-                                        (Number(item.quantity) || 0);
+                                    const subtotal = selectedMenuItem
+                                        ? Number(selectedMenuItem.item_price) *
+                                          item.quantity
+                                        : 0;
 
                                     return (
                                         <div
                                             key={index}
-                                            className="rounded-xl border border-purple-100 bg-purple-50/40 p-4"
+                                            className="rounded-xl border border-gray-100 bg-gray-50/70 p-4"
                                         >
-                                            <div className="mb-4 flex items-center justify-between">
-                                                <h3 className="font-bold text-purple-800">
-                                                    Item {index + 1}
-                                                </h3>
-
-                                                {data.items.length > 1 && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() =>
-                                                            removeItem(index)
-                                                        }
-                                                        className="rounded-lg px-3 py-1.5 text-sm font-semibold text-pink-700 transition hover:bg-pink-100"
-                                                    >
-                                                        Remove
-                                                    </button>
-                                                )}
-                                            </div>
-
-                                            <div className="grid gap-4 sm:grid-cols-2">
-                                                <div>
-                                                    <label
-                                                        htmlFor={`menu_item_${index}`}
-                                                        className="mb-2 block font-semibold text-purple-900"
-                                                    >
+                                            <div className="grid items-end gap-4 md:grid-cols-12">
+                                                <div className="md:col-span-6">
+                                                    <label className={labelClass}>
                                                         Menu Item
                                                     </label>
 
                                                     <select
-                                                        id={`menu_item_${index}`}
-                                                        value={item.menu_item_id}
-                                                        onChange={(event) =>
+                                                        value={item.menu_item_id || ''}
+                                                        onChange={(e) =>
                                                             updateItem(
                                                                 index,
                                                                 'menu_item_id',
-                                                                event.target.value,
+                                                                Number(e.target.value)
                                                             )
                                                         }
-                                                        className="w-full rounded-xl border border-purple-200 bg-white p-3 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
-                                                        required
+                                                        className={inputClass}
                                                     >
                                                         <option value="">
                                                             Select menu item
                                                         </option>
 
-                                                        {menuItems.map(
-                                                            (menuItem) => (
-                                                                <option
-                                                                    key={
-                                                                        menuItem.id
-                                                                    }
-                                                                    value={
-                                                                        menuItem.id
-                                                                    }
-                                                                >
-                                                                    {
-                                                                        menuItem.name
-                                                                    }{' '}
-                                                                    (
-                                                                    {
-                                                                        menuItem.category
-                                                                    }
-                                                                    ) —{' '}
-                                                                    {peso(
-                                                                        Number(
-                                                                            menuItem.price,
-                                                                        ),
-                                                                    )}
-                                                                </option>
-                                                            ),
-                                                        )}
+                                                        {menuItems.map((menu) => (
+                                                            <option
+                                                                key={menu.id}
+                                                                value={menu.id}
+                                                            >
+                                                                {menu.menu_item_name} — ₱{Number(menu.item_price).toFixed(2)}
+                                                            </option>
+                                                        ))}
                                                     </select>
 
-                                                    {errors[
-                                                        `items.${index}.menu_item_id` as keyof typeof errors
-                                                    ] && (
-                                                        <p className="mt-2 text-sm text-red-600">
-                                                            {
-                                                                errors[
-                                                                    `items.${index}.menu_item_id` as keyof typeof errors
-                                                                ]
-                                                            }
+                                                    {errorFor(`items.${index}.menu_item_id`) && (
+                                                        <p className="mt-1 text-xs text-red-500">
+                                                            {errorFor(`items.${index}.menu_item_id`)}
                                                         </p>
                                                     )}
                                                 </div>
 
-                                                <div>
-                                                    <label
-                                                        htmlFor={`quantity_${index}`}
-                                                        className="mb-2 block font-semibold text-purple-900"
-                                                    >
+                                                <div className="md:col-span-2">
+                                                    <label className={labelClass}>
                                                         Quantity
                                                     </label>
 
                                                     <input
-                                                        id={`quantity_${index}`}
                                                         type="number"
                                                         min="1"
                                                         max="1000"
                                                         value={item.quantity}
-                                                        onChange={(event) =>
+                                                        onChange={(e) =>
                                                             updateItem(
                                                                 index,
                                                                 'quantity',
-                                                                Number(
-                                                                    event.target
-                                                                        .value,
-                                                                ),
+                                                                Math.max(1, Number(e.target.value))
                                                             )
                                                         }
-                                                        className="w-full rounded-xl border border-purple-200 bg-white p-3 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
-                                                        required
+                                                        className={inputClass}
                                                     />
+
+                                                    {errorFor(`items.${index}.quantity`) && (
+                                                        <p className="mt-1 text-xs text-red-500">
+                                                            {errorFor(`items.${index}.quantity`)}
+                                                        </p>
+                                                    )}
                                                 </div>
-                                            </div>
 
-                                            <div className="mt-4 flex flex-wrap justify-between gap-3 border-t border-purple-100 pt-4 text-sm">
-                                                <p className="text-purple-600">
-                                                    Unit price:{' '}
-                                                    <span className="font-bold text-purple-900">
-                                                        {peso(unitPrice)}
-                                                    </span>
-                                                </p>
+                                                <div className="md:col-span-3">
+                                                    <label className={labelClass}>
+                                                        Subtotal
+                                                    </label>
 
-                                                <p className="text-purple-600">
-                                                    Item total:{' '}
-                                                    <span className="font-bold text-purple-800">
-                                                        {peso(lineTotal)}
-                                                    </span>
-                                                </p>
+                                                    <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-purple-700">
+                                                        ₱{subtotal.toFixed(2)}
+                                                    </div>
+                                                </div>
+
+                                                <div className="md:col-span-1">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeItem(index)}
+                                                        disabled={(Array.isArray(form.data.items) ? form.data.items.length : 0) <= 1}
+                                                        title="Remove item"
+                                                        className="w-full rounded-xl border border-pink-100 bg-pink-50 px-3 py-3 text-sm font-semibold text-pink-600 transition hover:bg-pink-100 disabled:cursor-not-allowed disabled:opacity-40"
+                                                    >
+                                                        ×
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     );
                                 })}
                             </div>
 
-                            {errors.items && (
-                                <p className="mt-3 text-sm text-red-600">
-                                    {errors.items}
+                            {errorFor('items') && (
+                                <p className="mt-3 text-xs text-red-500">
+                                    {errorFor('items')}
                                 </p>
                             )}
 
-                            <div className="mt-6 rounded-xl border border-pink-200 bg-pink-100 p-5 text-right">
-                                <p className="text-sm font-medium text-purple-700">
-                                    Pre-Order Total
-                                </p>
+                            <div className="mt-6 flex items-center justify-between rounded-xl bg-purple-50 p-5">
+                                <span className="font-medium text-gray-700">
+                                    Total Pre-Order Amount
+                                </span>
 
-                                <p className="mt-1 text-3xl font-extrabold text-purple-800">
-                                    {peso(totalAmount)}
-                                </p>
+                                <span className="text-2xl font-bold text-purple-700">
+                                    ₱{totalAmount.toFixed(2)}
+                                </span>
                             </div>
                         </section>
 
-                        {/* 4. DEPOSIT PAYMENT */}
-                        <section className="rounded-2xl border border-purple-100 bg-white p-6 shadow-sm">
-                            <div className="mb-5 flex items-center gap-3">
-                                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-100 font-bold text-purple-800">
-                                    4
-                                </div>
+                        {/* Payment */}
+                        <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+                            <h2 className="text-lg font-semibold text-gray-900">
+                                Payment Information
+                            </h2>
 
-                                <div>
-                                    <h2 className="text-xl font-bold text-purple-800">
-                                        Deposit Payment
-                                    </h2>
-                                    <p className="text-sm text-purple-500">
-                                        Enter the deposit for your pre-order.
+                            <p className="mb-5 mt-1 text-sm text-gray-500">
+                                Enter the deposit amount paid by the customer.
+                            </p>
+
+                            <div className="max-w-md">
+                                <label className={labelClass}>
+                                    Deposit Paid (₱) *
+                                </label>
+
+                                <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={String(form.data.deposit_paid ?? '')}
+                                    onChange={(e) =>
+                                        form.setData(
+                                            'deposit_paid',
+                                            Number(e.target.value)
+                                        )
+                                    }
+                                    placeholder="0.00"
+                                    className={inputClass}
+                                />
+
+                                {errorFor('deposit_paid') && (
+                                    <p className="mt-1 text-xs text-red-500">
+                                        {errorFor('deposit_paid')}
                                     </p>
-                                </div>
+                                )}
                             </div>
-
-                            <div className="mb-5 rounded-xl bg-pink-100 p-4">
-                                <p className="text-sm font-medium text-purple-700">
-                                    Minimum Deposit (20%)
-                                </p>
-
-                                <p className="mt-1 text-2xl font-extrabold text-purple-800">
-                                    {peso(minimumDeposit)}
-                                </p>
-                            </div>
-
-                            <label
-                                htmlFor="deposit_paid"
-                                className="mb-2 block font-semibold text-purple-900"
-                            >
-                                Deposit Amount (₱)
-                            </label>
-
-                            <input
-                                id="deposit_paid"
-                                type="number"
-                                min={minimumDeposit.toFixed(2)}
-                                step="0.01"
-                                value={data.deposit_paid}
-                                onChange={(event) =>
-                                    setData(
-                                        'deposit_paid',
-                                        Number(event.target.value),
-                                    )
-                                }
-                                className="w-full rounded-xl border border-purple-200 p-3 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
-                                required
-                            />
-
-                            {errors.deposit_paid && (
-                                <p className="mt-2 text-sm text-red-600">
-                                    {errors.deposit_paid}
-                                </p>
-                            )}
-
-                            {data.deposit_paid < minimumDeposit && (
-                                <p className="mt-2 text-sm text-pink-700">
-                                    Deposit must be at least{' '}
-                                    {peso(minimumDeposit)}.
-                                </p>
-                            )}
                         </section>
 
-                        {/* FORM ACTIONS */}
-                        <div className="flex flex-wrap justify-end gap-3 pb-8">
+                        {/* Form Actions */}
+                        <div className="flex flex-col-reverse justify-end gap-3 pb-8 sm:flex-row">
+                            <Link
+                                href="/dashboard"
+                                className="rounded-xl border border-gray-200 bg-white px-6 py-3 text-center text-sm font-semibold text-gray-600 transition hover:bg-gray-50"
+                            >
+                                Back to Dashboard
+                            </Link>
+
                             <Link
                                 href="/reservations"
-                                className="rounded-xl border border-purple-200 bg-white px-5 py-3 font-semibold text-purple-700 transition hover:bg-pink-100"
+                                className="rounded-xl border border-gray-200 bg-white px-6 py-3 text-center text-sm font-semibold text-gray-600 transition hover:bg-gray-50"
                             >
                                 Cancel
                             </Link>
 
                             <button
                                 type="submit"
-                                disabled={
-                                    processing ||
-                                    customers.length === 0 ||
-                                    tables.length === 0 ||
-                                    menuItems.length === 0 ||
-                                    data.items.some(
-                                        (item) => !item.menu_item_id,
-                                    ) ||
-                                    data.deposit_paid < minimumDeposit ||
-                                    (selectedTable !== undefined &&
-                                        data.party_size >
-                                            Number(
-                                                selectedTable.table_capacity,
-                                            ))
-                                }
-                                className="rounded-xl bg-purple-700 px-6 py-3 font-bold text-white shadow-sm transition hover:bg-purple-800 disabled:cursor-not-allowed disabled:opacity-50"
+                                disabled={form.processing}
+                                className="rounded-xl bg-purple-600 px-7 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                                {processing
+                                {form.processing
                                     ? 'Saving Reservation...'
-                                    : 'Create Reservation'}
+                                    : 'Save Reservation'}
                             </button>
                         </div>
                     </form>

@@ -118,13 +118,15 @@ class ReservationService
 
         $customer = Customer::firstOrCreate(
     [
-        'contact_number' => $phone,
+        'customer_number' => $phone,
     ],
     [
         'customer_name' => $this->cleanText(
             $data['customer_name']
         ),
-        'customer_number' => $phone,
+        'customer_number' => $phone],
+        [
+         'customer_name' => $this->cleanText($data['customer_name']),
     ]
 );
 
@@ -166,14 +168,8 @@ class ReservationService
             $customer = $reservation->customer;
             $customerData = [];
 
-            if (array_key_exists('customer_name', $data)) {
-                $customerData['customer_name'] = $this->cleanText(
-                    $data['customer_name']
-                );
-            }
-
             if (array_key_exists('contact_number', $data)) {
-                $customerData['contact_number'] = $this->cleanPhone(
+                $customerData['customer_number'] = $this->cleanPhone(
                     $data['contact_number']
                 );
             }
