@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreMenuItemRequest;
+use App\Http\Requests\UpdateMenuItemRequest;
 use App\Models\MenuItem;
 use App\Services\MenuItemService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -31,24 +34,19 @@ class MenuItemController extends Controller
         return Inertia::render('menu-items/create');
     }
 
-    public function store(Request $request)
+    public function store(StoreMenuItemRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'category' => ['required', 'string', 'max:100'],
-            'price' => ['required', 'numeric', 'min:0'],
-        ], [
-            'name.required' => 'Please enter the menu item name.',
-            'category.required' => 'Please select a food category.',
-            'price.required' => 'Please enter the item price.',
-            'price.numeric' => 'The price must be a valid number.',
-            'price.min' => 'The price cannot be negative.',
-        ]);
+        $this->menuItemService->createMenuItem($request->validated());
 
-        $this->menuItemService->createMenuItem($validated);
+        return redirect()->route('menu-items.index')
+            ->with('success', 'Menu item created successfully.');
+    }
 
-        return redirect()
-            ->route('menu-items.index')
-            ->with('success', 'Menu item added successfully!');
+    public function update(UpdateMenuItemRequest $request, MenuItem $menuItem): RedirectResponse
+    {
+        $this->menuItemService->updateMenuItem($request->validated(), $menuItem->id);
+
+        return redirect()->route('menu-items.index')
+            ->with('success', 'Menu item updated successfully.');
     }
 }

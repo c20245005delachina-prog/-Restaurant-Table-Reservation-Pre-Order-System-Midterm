@@ -1,3 +1,5 @@
+
+import AppLayout from '@/layouts/app-layout';
 import { Head, Link } from '@inertiajs/react';
 
 interface Customer {
@@ -14,25 +16,33 @@ interface RestaurantTable {
 
 interface MenuItem {
     id: number;
-    menu_item_name: string;
-    item_price: number | string;
+    name?: string;
+    category?: string;
+    price?: number | string;
+    menu_item_name?: string;
+    item_category?: string;
+    item_price?: number | string;
 }
 
 interface ReservationItem {
     id: number;
+    menu_item_id: number;
     quantity: number;
     unit_price: number | string;
+    menu_item?: MenuItem | null;
     menuItem?: MenuItem | null;
 }
 
 interface Reservation {
     id: number;
+    customer_id: number;
+    restaurant_table_id: number;
     reservation_time: string;
     party_size: number;
+    total_amount: number | string;
     deposit_paid: number | string;
     customer?: Customer | null;
     restaurant_table?: RestaurantTable | null;
-    restaurantTable?: RestaurantTable | null;
     reservation_items?: ReservationItem[];
     reservationItems?: ReservationItem[];
 }
@@ -41,288 +51,438 @@ interface Props {
     reservation: Reservation;
 }
 
-const money = (amount: number | string | undefined) =>
-    `₱${Number(amount ?? 0).toLocaleString('en-PH', {
+const peso = (amount: number) =>
+    `₱${amount.toLocaleString('en-PH', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
     })}`;
 
-const formatDate = (date: string) => {
-    if (!date) return '—';
+function formatDateTime(value: string): string {
+    if (!value) return 'Not specified';
 
-    const parsed = new Date(date.replace(' ', 'T'));
+    const date = new Date(value);
 
-    return Number.isNaN(parsed.getTime())
-        ? date
-        : parsed.toLocaleString('en-PH', {
-              dateStyle: 'long',
-              timeStyle: 'short',
-          });
-};
+    if (Number.isNaN(date.getTime())) {
+        return value;
+    }
+
+    return date.toLocaleString('en-PH', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+    });
+}
+
+const cardStyle =
+    'min-w-0 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm';
+
+const headingStyle =
+    'text-lg font-bold text-gray-900';
+
+function Detail({
+    label,
+    value,
+}: {
+    label: string;
+    value: string | number;
+}) {
+    return (
+        <div className="min-w-0">
+            <p className="text-sm text-gray-500">{label}</p>
+            <p className="mt-1 break-words font-semibold text-gray-900">
+                {value}
+            </p>
+        </div>
+    );
+}
 
 export default function Show({ reservation }: Props) {
-    const table =
-        reservation.restaurantTable ?? reservation.restaurant_table;
+    const customer = reservation.customer;
+    const table = reservation.restaurant_table;
 
     const items =
-        reservation.reservationItems ?? reservation.reservation_items ?? [];
+        reservation.reservation_items ??
+        reservation.reservationItems ??
+        [];
 
-    const orderTotal = items.reduce(
-        (sum, item) =>
-            sum + Number(item.unit_price ?? 0) * Number(item.quantity ?? 0),
-        0
+    const totalAmount = Number(reservation.total_amount ?? 0);
+    const depositPaid = Number(reservation.deposit_paid ?? 0);
+
+    const remainingBalance = Math.max(
+        0,
+        totalAmount - depositPaid,
     );
 
-    const deposit = Number(reservation.deposit_paid ?? 0);
-    const remainingBalance = Math.max(orderTotal - deposit, 0);
+    const excessPayment = Math.max(
+        0,
+        depositPaid - totalAmount,
+    );
 
     return (
-        <>
+        <AppLayout>
             <Head title={`Reservation #${reservation.id}`} />
 
-            <main className="min-h-screen bg-gradient-to-br from-violet-50 via-purple-50 to-pink-50 px-4 py-8 text-slate-800 sm:px-8">
-                <div className="mx-auto max-w-5xl">
-                    <Link
-                        href="/reservations"
-                        className="inline-flex items-center gap-2 rounded-xl border border-purple-200 bg-white px-4 py-2 font-semibold text-purple-700 shadow-sm transition hover:bg-purple-50"
-                    >
-                        ← Back to Reservations
-                    </Link>
+            <div className="min-h-screen bg-gray-100 px-4 py-8 sm:px-6 lg:px-8">
+                <div className="mx-auto w-full max-w-7xl">
 
-                    <header className="mt-6 flex flex-col justify-between gap-4 rounded-3xl bg-gradient-to-r from-purple-700 via-violet-600 to-fuchsia-500 p-7 text-white shadow-xl sm:flex-row sm:items-center sm:p-9">
+                    {/* HEADER */}
+                    <div className="mb-8 flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
                         <div>
-                            <p className="text-sm font-bold uppercase tracking-widest text-purple-100">
-                                Reservation Details
+                            <p className="text-sm font-semibold uppercase tracking-wider text-teal-700">
+                                Restaurant Management
                             </p>
 
-                            <h1 className="mt-2 text-3xl font-extrabold sm:text-4xl">
-                                Booking #{reservation.id}
+                            <h1 className="mt-2 text-3xl font-bold text-gray-950">
+                                Reservation Details
                             </h1>
 
-                            <p className="mt-2 text-purple-100">
-                                Review customer, table, and pre-order information.
+                            <p className="mt-2 text-sm text-gray-500">
+                                Review customer, table, payment, and pre-order information.
                             </p>
                         </div>
 
-                        <Link
-                            href={`/reservations/${reservation.id}/edit`}
-                            className="inline-flex items-center justify-center rounded-xl bg-white px-5 py-3 font-bold text-purple-700 transition hover:bg-pink-100"
-                        >
-                            ✎ Edit Reservation
-                        </Link>
-                    </header>
+                        <div className="flex flex-wrap gap-3">
+                            <Link
+                                href="/dashboard"
+                                className="rounded-lg border border-gray-300 bg-white px-5 py-3 text-sm font-semibold text-gray-800 shadow-sm transition hover:bg-gray-50"
+                            >
+                                 Dashboard
+                            </Link>
 
-                    <div className="mt-7 grid gap-6 md:grid-cols-2">
-                        {/* Customer details */}
-                        <section className="rounded-2xl border border-purple-100 bg-white p-6 shadow-sm">
-                            <div className="flex items-center gap-3">
-                                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-100 text-xl">
-                                    👤
-                                </div>
+                            <Link
+                                href="/reservations"
+                                className="rounded-lg border border-gray-300 bg-white px-5 py-3 text-sm font-semibold text-gray-800 shadow-sm transition hover:bg-gray-50"
+                            >
+                                Back to Reservations
+                            </Link>
 
-                                <div>
-                                    <h2 className="text-lg font-bold text-purple-800">
-                                        Customer Information
-                                    </h2>
-                                    <p className="text-sm text-slate-500">
-                                        Contact details
-                                    </p>
+                            <Link
+                                href={`/reservations/${reservation.id}/edit`}
+                                className="rounded-lg bg-teal-700 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800"
+                            >
+                                ✎ Edit Reservation
+                            </Link>
+                        </div>
+                    </div>
+
+                    {/* RESERVATION NUMBER */}
+                    <div className="mb-6 rounded-xl border border-teal-100 bg-white p-5 shadow-sm sm:p-6">
+                        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+                            <div>
+                                <p className="text-sm font-medium text-gray-500">
+                                    Reservation Reference
+                                </p>
+
+                                <h2 className="mt-1 text-3xl font-bold text-teal-800">
+                                    #{reservation.id}
+                                </h2>
+
+                                <p className="mt-1 text-sm text-gray-500">
+                                    {formatDateTime(reservation.reservation_time)}
+                                </p>
+                            </div>
+
+                            <div className="rounded-lg bg-yellow-50 px-5 py-3">
+                                <p className="text-sm text-gray-600">
+                                    Number of Guests
+                                </p>
+
+                                <p className="mt-1 text-2xl font-bold text-gray-900">
+                                    {reservation.party_size}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* CUSTOMER AND TABLE INFORMATION */}
+                    <div className="mb-6 grid min-w-0 gap-6 lg:grid-cols-2">
+
+                        {/* CUSTOMER */}
+                        <section className={cardStyle}>
+                            <div className="border-b border-gray-100 p-5 sm:p-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-teal-50 text-xl">
+                                        👤
+                                    </div>
+
+                                    <div>
+                                        <h2 className={headingStyle}>
+                                            Customer Information
+                                        </h2>
+
+                                        <p className="text-sm text-gray-500">
+                                            Customer contact details
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="mt-6 space-y-4">
-                                <div>
-                                    <p className="text-sm text-slate-500">
-                                        Customer Name
-                                    </p>
-                                    <p className="mt-1 font-semibold">
-                                        {reservation.customer?.customer_name ??
-                                            'Customer unavailable'}
-                                    </p>
-                                </div>
+                            <div className="grid gap-6 p-5 sm:grid-cols-2 sm:p-6">
+                                <Detail
+                                    label="Customer Name"
+                                    value={customer?.customer_name ?? 'Not available'}
+                                />
 
-                                <div>
-                                    <p className="text-sm text-slate-500">
-                                        Contact Number
-                                    </p>
-                                    <p className="mt-1 font-semibold">
-                                        {reservation.customer?.contact_number ??
-                                            'No contact number'}
-                                    </p>
-                                </div>
+                                <Detail
+                                    label="Contact Number"
+                                    value={customer?.contact_number ?? 'No contact number'}
+                                />
                             </div>
                         </section>
 
-                        {/* Booking details */}
-                        <section className="rounded-2xl border border-pink-100 bg-white p-6 shadow-sm">
-                            <div className="flex items-center gap-3">
-                                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-pink-100 text-xl">
-                                    📅
-                                </div>
+                        {/* TABLE AND BOOKING */}
+                        <section className={cardStyle}>
+                            <div className="border-b border-gray-100 p-5 sm:p-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-yellow-50 text-xl">
+                                        📅
+                                    </div>
 
-                                <div>
-                                    <h2 className="text-lg font-bold text-pink-800">
-                                        Booking Information
-                                    </h2>
-                                    <p className="text-sm text-slate-500">
-                                        Schedule and seating
-                                    </p>
+                                    <div>
+                                        <h2 className={headingStyle}>
+                                            Booking Information
+                                        </h2>
+
+                                        <p className="text-sm text-gray-500">
+                                            Reservation schedule and seating
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="mt-6 space-y-4">
-                                <div>
-                                    <p className="text-sm text-slate-500">
-                                        Reservation Date and Time
-                                    </p>
-                                    <p className="mt-1 font-semibold">
-                                        {formatDate(reservation.reservation_time)}
-                                    </p>
-                                </div>
+                            <div className="grid gap-6 p-5 sm:grid-cols-2 sm:p-6">
+                                <Detail
+                                    label="Reservation Date and Time"
+                                    value={formatDateTime(reservation.reservation_time)}
+                                />
 
-                                <div>
-                                    <p className="text-sm text-slate-500">
-                                        Table Number
-                                    </p>
-                                    <p className="mt-1 font-semibold">
-                                        {table?.table_number ?? 'Not assigned'}
-                                    </p>
-                                </div>
+                                <Detail
+                                    label="Table Number"
+                                    value={
+                                        table
+                                            ? `Table ${table.table_number}`
+                                            : 'Not assigned'
+                                    }
+                                />
 
-                                <div>
-                                    <p className="text-sm text-slate-500">
-                                        Table Capacity
-                                    </p>
-                                    <p className="mt-1 font-semibold">
-                                        {table?.table_capacity ?? '—'} seats
-                                    </p>
-                                </div>
+                                <Detail
+                                    label="Table Capacity"
+                                    value={
+                                        table
+                                            ? `${table.table_capacity} seats`
+                                            : 'Not available'
+                                    }
+                                />
 
-                                <div>
-                                    <p className="text-sm text-slate-500">
-                                        Number of Guests
-                                    </p>
-                                    <p className="mt-1 font-semibold">
-                                        {reservation.party_size ?? '—'}
-                                    </p>
-                                </div>
+                                <Detail
+                                    label="Number of Guests"
+                                    value={`${reservation.party_size} guest(s)`}
+                                />
                             </div>
                         </section>
                     </div>
 
-                    {/* Pre-order */}
-                    <section className="mt-7 overflow-hidden rounded-2xl border border-purple-100 bg-white shadow-sm">
-                        <div className="bg-gradient-to-r from-purple-50 to-pink-50 px-6 py-5">
-                            <h2 className="text-xl font-bold text-purple-800">
-                                🍽️ Pre-Order Details
+                    {/* PRE-ORDER DETAILS */}
+                    <section className={`${cardStyle} mb-6`}>
+                        <div className="border-b border-gray-100 p-5 sm:p-6">
+                            <h2 className={headingStyle}>
+                                Pre-Order Menu Items
                             </h2>
-                            <p className="mt-1 text-sm text-slate-500">
-                                Menu items and order amounts
+
+                            <p className="mt-1 text-sm text-gray-500">
+                                Menu items, quantities, and order amounts.
                             </p>
                         </div>
 
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left text-sm">
-                                <thead className="bg-violet-50 text-xs uppercase text-purple-700">
-                                    <tr>
-                                        <th className="px-6 py-4">Menu Item</th>
-                                        <th className="px-6 py-4">Unit Price</th>
-                                        <th className="px-6 py-4">Quantity</th>
-                                        <th className="px-6 py-4 text-right">
-                                            Subtotal
-                                        </th>
-                                    </tr>
-                                </thead>
+                        {items.length > 0 ? (
+                            <div className="overflow-x-auto">
+                                <table className="w-full min-w-[650px] text-left">
+                                    <thead className="bg-gray-50">
+                                        <tr className="text-xs font-semibold uppercase tracking-wide text-gray-600">
+                                            <th className="px-5 py-4">
+                                                Menu Item
+                                            </th>
 
-                                <tbody className="divide-y divide-purple-50">
-                                    {items.length > 0 ? (
-                                        items.map((item) => (
-                                            <tr key={item.id}>
-                                                <td className="px-6 py-4 font-semibold">
-                                                    {item.menuItem?.menu_item_name ??
-                                                        'Menu item unavailable'}
-                                                </td>
+                                            <th className="px-5 py-4">
+                                                Category
+                                            </th>
 
-                                                <td className="px-6 py-4">
-                                                    {money(item.unit_price)}
-                                                </td>
+                                            <th className="px-5 py-4">
+                                                Unit Price
+                                            </th>
 
-                                                <td className="px-6 py-4">
-                                                    {item.quantity}
-                                                </td>
+                                            <th className="px-5 py-4">
+                                                Quantity
+                                            </th>
 
-                                                <td className="px-6 py-4 text-right font-semibold text-purple-700">
-                                                    {money(
-                                                        Number(item.unit_price) *
-                                                            item.quantity
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        ))
-                                    ) : (
-                                        <tr>
-                                            <td
-                                                colSpan={4}
-                                                className="px-6 py-10 text-center text-slate-500"
-                                            >
-                                                No pre-order items for this reservation.
-                                            </td>
+                                            <th className="px-5 py-4 text-right">
+                                                Subtotal
+                                            </th>
                                         </tr>
-                                    )}
-                                </tbody>
-                            </table>
+                                    </thead>
+
+                                    <tbody className="divide-y divide-gray-100">
+                                        {items.map((item, index) => {
+                                            const menu =
+                                                item.menu_item ??
+                                                item.menuItem ??
+                                                null;
+
+                                            const menuName =
+                                                menu?.name ??
+                                                menu?.menu_item_name ??
+                                                'Menu item unavailable';
+
+                                            const category =
+                                                menu?.category ??
+                                                menu?.item_category ??
+                                                '—';
+
+                                            const unitPrice = Number(
+                                                item.unit_price ??
+                                                menu?.price ??
+                                                menu?.item_price ??
+                                                0,
+                                            );
+
+                                            const quantity = Number(
+                                                item.quantity ?? 0,
+                                            );
+
+                                            const subtotal =
+                                                unitPrice * quantity;
+
+                                            return (
+                                                <tr
+                                                    key={item.id ?? index}
+                                                    className="transition hover:bg-gray-50"
+                                                >
+                                                    <td className="px-5 py-4">
+                                                        <p className="font-semibold text-gray-900">
+                                                            {menuName}
+                                                        </p>
+                                                    </td>
+
+                                                    <td className="px-5 py-4 text-sm text-gray-600">
+                                                        {category}
+                                                    </td>
+
+                                                    <td className="px-5 py-4 text-sm text-gray-700">
+                                                        {peso(unitPrice)}
+                                                    </td>
+
+                                                    <td className="px-5 py-4 text-sm font-medium text-gray-900">
+                                                        {quantity}
+                                                    </td>
+
+                                                    <td className="px-5 py-4 text-right font-semibold text-teal-800">
+                                                        {peso(subtotal)}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ) : (
+                            <div className="p-8 text-center">
+                                <p className="font-semibold text-gray-700">
+                                    No pre-order items
+                                </p>
+
+                                <p className="mt-1 text-sm text-gray-500">
+                                    This reservation does not have any menu items.
+                                </p>
+                            </div>
+                        )}
+
+                        <div className="flex justify-end border-t border-gray-100 bg-gray-50 p-5 sm:p-6">
+                            <div className="w-full sm:max-w-sm">
+                                <p className="text-sm text-gray-500">
+                                    Total Pre-Order Amount
+                                </p>
+
+                                <p className="mt-1 text-3xl font-bold text-teal-800">
+                                    {peso(totalAmount)}
+                                </p>
+                            </div>
                         </div>
                     </section>
 
-                    {/* Payment summary */}
-                    <section className="mt-7 rounded-2xl border border-purple-100 bg-white p-6 shadow-sm sm:p-8">
-                        <h2 className="text-xl font-bold text-purple-800">
-                            Payment Summary
-                        </h2>
+                    {/* PAYMENT DETAILS */}
+                    <section className={`${cardStyle} mb-6`}>
+                        <div className="border-b border-gray-100 p-5 sm:p-6">
+                            <h2 className={headingStyle}>
+                                Payment Details
+                            </h2>
 
-                        <div className="mt-5 space-y-4">
-                            <div className="flex justify-between gap-4">
-                                <span className="text-slate-500">
-                                    Pre-order Total
-                                </span>
-                                <span className="font-semibold">
-                                    {money(orderTotal)}
-                                </span>
+                            <p className="mt-1 text-sm text-gray-500">
+                                Deposit payment and remaining balance.
+                            </p>
+                        </div>
+
+                        <div className="grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-3 sm:p-6">
+                            <div className="rounded-lg bg-teal-50 p-5">
+                                <p className="text-sm font-medium text-gray-600">
+                                    Total Amount
+                                </p>
+
+                                <p className="mt-2 text-2xl font-bold text-teal-800">
+                                    {peso(totalAmount)}
+                                </p>
                             </div>
 
-                            <div className="flex justify-between gap-4">
-                                <span className="text-slate-500">
+                            <div className="rounded-lg bg-yellow-50 p-5">
+                                <p className="text-sm font-medium text-gray-600">
                                     Deposit Paid
-                                </span>
-                                <span className="font-semibold text-pink-600">
-                                    {money(deposit)}
-                                </span>
+                                </p>
+
+                                <p className="mt-2 text-2xl font-bold text-gray-900">
+                                    {peso(depositPaid)}
+                                </p>
                             </div>
 
-                            <div className="border-t border-purple-100 pt-4">
-                                <div className="flex justify-between gap-4">
-                                    <span className="font-bold text-purple-800">
-                                        Remaining Balance
-                                    </span>
-                                    <span className="text-xl font-extrabold text-purple-700">
-                                        {money(remainingBalance)}
-                                    </span>
-                                </div>
+                            <div className="rounded-lg bg-gray-100 p-5">
+                                <p className="text-sm font-medium text-gray-600">
+                                    Remaining Balance
+                                </p>
+
+                                <p className="mt-2 text-2xl font-bold text-gray-900">
+                                    {peso(remainingBalance)}
+                                </p>
                             </div>
                         </div>
 
-                        <p className="mt-4 text-xs text-slate-400">
-                            The remaining balance is calculated from the
-                            pre-order total minus the deposit. Verify payment
-                            records separately if other charges apply.
-                        </p>
+                        {excessPayment > 0 && (
+                            <div className="mx-5 mb-5 rounded-lg border border-teal-200 bg-teal-50 p-5 sm:mx-6 sm:mb-6">
+                                <p className="text-sm font-medium text-teal-800">
+                                    Excess Payment
+                                </p>
+
+                                <p className="mt-1 text-2xl font-bold text-teal-900">
+                                    {peso(excessPayment)}
+                                </p>
+                            </div>
+                        )}
                     </section>
 
-                    <footer className="py-8 text-center text-sm text-purple-400">
-                        💜 Restaurant Reservation &amp; Pre-Order System
-                    </footer>
+                    {/* FOOTER */}
+                    <div className="flex flex-col justify-between gap-3 border-t border-gray-200 pt-5 sm:flex-row sm:items-center">
+                        <p className="text-xs text-gray-500">
+                            Restaurant Table Reservation & Pre-Order System
+                        </p>
+
+                        <Link
+                            href="/reservations"
+                            className="text-sm font-semibold text-teal-700 hover:text-teal-900"
+                        >
+                             Return to Reservation Records
+                        </Link>
+                    </div>
                 </div>
-            </main>
-        </>
+            </div>
+        </AppLayout>
     );
 }

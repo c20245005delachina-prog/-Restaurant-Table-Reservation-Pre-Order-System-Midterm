@@ -1,5 +1,7 @@
 
+import AppLayout from '@/layouts/app-layout';
 import { Head, Link, useForm } from '@inertiajs/react';
+import { FormEvent } from 'react';
 
 export default function Create() {
     const { data, setData, post, processing, errors } = useForm({
@@ -7,61 +9,72 @@ export default function Create() {
         table_capacity: 2,
     });
 
-    function submit(event: React.FormEvent<HTMLFormElement>) {
+    function submit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         post('/restaurant-tables');
     }
 
+    const inputStyle =
+        'w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100';
+
     return (
-        <>
+        <AppLayout>
             <Head title="Add Restaurant Table" />
 
-            <main className="min-h-screen bg-gradient-to-br from-violet-50 via-purple-50 to-pink-50 px-4 py-8 text-slate-800 sm:px-8">
-                <div className="mx-auto max-w-3xl">
-                    {/* Back Link */}
-                    <Link
-                        href="/restaurant-tables"
-                        className="inline-flex items-center gap-2 font-semibold text-purple-700 transition hover:text-pink-600"
-                    >
-                        <span aria-hidden="true">←</span>
-                        Back to Restaurant Tables
-                    </Link>
+            <main className="min-h-screen bg-gray-100 px-4 py-8 text-slate-800 sm:px-8">
+                <div className="mx-auto max-w-4xl">
 
-                    {/* Form Card */}
-                    <section className="mt-6 overflow-hidden rounded-3xl border border-purple-100 bg-white shadow-xl shadow-purple-100/60">
-                        {/* Card Header */}
-                        <div className="bg-gradient-to-r from-purple-600 via-violet-600 to-fuchsia-500 px-6 py-8 text-white sm:px-10">
+                    <div className="mb-6">
+                        <Link
+                            href="/restaurant-tables"
+                            className="inline-flex items-center gap-2 text-sm font-semibold text-teal-700 transition hover:text-teal-900"
+                        >
+                            ← Back to Restaurant Tables
+                        </Link>
+                    </div>
+
+                    <header className="mb-7">
+                        <p className="mb-2 text-sm font-bold uppercase tracking-wide text-teal-700">
+                            Reservation Management
+                        </p>
+
+                        <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+                            Add Restaurant Table
+                        </h1>
+
+                        <p className="mt-2 text-sm text-slate-500">
+                            Create a new seating space for your restaurant.
+                        </p>
+                    </header>
+
+                    <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+
+                        <div className="border-b border-slate-200 px-6 py-5 sm:px-8">
                             <div className="flex items-center gap-4">
-                                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/20 text-3xl shadow-inner">
+                                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-50 text-2xl">
                                     🪑
                                 </div>
 
                                 <div>
-                                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-purple-100">
-                                        Reservation Management
-                                    </p>
+                                    <h2 className="text-lg font-bold text-slate-900">
+                                        Restaurant Table Information
+                                    </h2>
 
-                                    <h1 className="mt-2 text-2xl font-extrabold sm:text-3xl">
-                                        Add Restaurant Table
-                                    </h1>
-
-                                    <p className="mt-2 text-sm text-purple-100">
-                                        Create a new seating space for your restaurant.
+                                    <p className="mt-1 text-sm text-slate-500">
+                                        Fill in the seating details below.
                                     </p>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Form */}
-                        <form onSubmit={submit} className="space-y-7 p-6 sm:p-10">
-                            {/* Table Number */}
+                        <form onSubmit={submit} className="space-y-6 p-6 sm:p-8">
+
                             <div>
                                 <label
                                     htmlFor="table_number"
-                                    className="mb-2 block text-sm font-bold text-slate-700"
+                                    className="mb-2 block text-sm font-semibold text-slate-700"
                                 >
-                                    Table Number
-                                    <span className="ml-1 text-pink-500">*</span>
+                                    Table Number <span className="text-red-500">*</span>
                                 </label>
 
                                 <input
@@ -76,44 +89,26 @@ export default function Create() {
                                     autoComplete="off"
                                     required
                                     aria-invalid={Boolean(errors.table_number)}
-                                    aria-describedby={
-                                        errors.table_number
-                                            ? 'table-number-error'
-                                            : 'table-number-help'
-                                    }
-                                    className={`w-full rounded-xl border bg-white px-4 py-3.5 text-slate-800 outline-none transition placeholder:text-slate-400 focus:ring-4 ${
-                                        errors.table_number
-                                            ? 'border-red-400 focus:border-red-400 focus:ring-red-100'
-                                            : 'border-purple-200 focus:border-purple-500 focus:ring-purple-100'
-                                    }`}
+                                    className={inputStyle}
                                 />
 
                                 {errors.table_number ? (
-                                    <p
-                                        id="table-number-error"
-                                        role="alert"
-                                        className="mt-2 text-sm font-medium text-red-600"
-                                    >
+                                    <p className="mt-2 text-sm text-red-600">
                                         {errors.table_number}
                                     </p>
                                 ) : (
-                                    <p
-                                        id="table-number-help"
-                                        className="mt-2 text-sm text-slate-500"
-                                    >
+                                    <p className="mt-2 text-sm text-slate-400">
                                         Enter a unique number or label for this table.
                                     </p>
                                 )}
                             </div>
 
-                            {/* Seating Capacity */}
                             <div>
                                 <label
                                     htmlFor="table_capacity"
-                                    className="mb-2 block text-sm font-bold text-slate-700"
+                                    className="mb-2 block text-sm font-semibold text-slate-700"
                                 >
-                                    Seating Capacity
-                                    <span className="ml-1 text-pink-500">*</span>
+                                    Seating Capacity <span className="text-red-500">*</span>
                                 </label>
 
                                 <div className="relative">
@@ -132,59 +127,41 @@ export default function Create() {
                                         }
                                         required
                                         aria-invalid={Boolean(errors.table_capacity)}
-                                        aria-describedby={
-                                            errors.table_capacity
-                                                ? 'table-capacity-error'
-                                                : 'table-capacity-help'
-                                        }
-                                        className={`w-full rounded-xl border bg-white px-4 py-3.5 pr-20 text-slate-800 outline-none transition focus:ring-4 ${
-                                            errors.table_capacity
-                                                ? 'border-red-400 focus:border-red-400 focus:ring-red-100'
-                                                : 'border-purple-200 focus:border-purple-500 focus:ring-purple-100'
-                                        }`}
+                                        className={`${inputStyle} pr-20`}
                                     />
 
-                                    <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-purple-500">
+                                    <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-teal-700">
                                         seats
                                     </span>
                                 </div>
 
                                 {errors.table_capacity ? (
-                                    <p
-                                        id="table-capacity-error"
-                                        role="alert"
-                                        className="mt-2 text-sm font-medium text-red-600"
-                                    >
+                                    <p className="mt-2 text-sm text-red-600">
                                         {errors.table_capacity}
                                     </p>
                                 ) : (
-                                    <p
-                                        id="table-capacity-help"
-                                        className="mt-2 text-sm text-slate-500"
-                                    >
+                                    <p className="mt-2 text-sm text-slate-400">
                                         Enter the maximum number of people this table can seat.
                                     </p>
                                 )}
                             </div>
 
-                            {/* Information */}
-                            <div className="flex gap-3 rounded-xl border border-pink-100 bg-gradient-to-r from-purple-50 to-pink-50 p-4">
-                                <span className="text-xl" aria-hidden="true">
-                                    💡
-                                </span>
+                            <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
+                                <div className="flex gap-3">
+                                    <span className="text-xl">💡</span>
 
-                                <p className="text-sm leading-6 text-purple-800">
-                                    <strong>Tip:</strong> Use a unique table number and
-                                    set the correct seating capacity so reservations can
-                                    be assigned appropriately.
-                                </p>
+                                    <p className="text-sm leading-6 text-slate-700">
+                                        <strong>Tip:</strong> Use a unique table number and
+                                        set the correct seating capacity so reservations
+                                        can be assigned appropriately.
+                                    </p>
+                                </div>
                             </div>
 
-                            {/* Actions */}
-                            <div className="flex flex-col-reverse gap-3 border-t border-purple-100 pt-6 sm:flex-row sm:justify-end">
+                            <div className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:justify-end">
                                 <Link
                                     href="/restaurant-tables"
-                                    className="inline-flex items-center justify-center rounded-xl border border-purple-200 px-6 py-3 font-semibold text-purple-700 transition hover:border-purple-300 hover:bg-purple-50"
+                                    className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                                 >
                                     Cancel
                                 </Link>
@@ -192,29 +169,19 @@ export default function Create() {
                                 <button
                                     type="submit"
                                     disabled={processing}
-                                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-500 px-7 py-3 font-bold text-white shadow-lg shadow-purple-200 transition duration-300 hover:-translate-y-0.5 hover:from-purple-700 hover:to-pink-600 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-60"
+                                    className="inline-flex items-center justify-center rounded-lg bg-teal-700 px-7 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-50"
                                 >
-                                    {processing ? (
-                                        <>
-                                            <span className="animate-spin">◌</span>
-                                            Saving...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <span aria-hidden="true">＋</span>
-                                            Save Table
-                                        </>
-                                    )}
+                                    {processing ? 'Saving...' : '+ Save Table'}
                                 </button>
                             </div>
                         </form>
                     </section>
 
-                    <footer className="py-8 text-center text-sm text-purple-400">
-                        💜 Restaurant Reservation &amp; Pre-Order System
+                    <footer className="py-7 text-center text-sm text-slate-400">
+                        Restaurant Reservation &amp; Pre-Order System © 2026
                     </footer>
                 </div>
             </main>
-        </>
+        </AppLayout>
     );
 }

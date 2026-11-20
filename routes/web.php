@@ -28,7 +28,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->only(['index', 'create', 'store', 'update']);
 
     Route::resource('customers', CustomerController::class)
-        ->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
+        ->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
 });
 
 require __DIR__.'/settings.php';

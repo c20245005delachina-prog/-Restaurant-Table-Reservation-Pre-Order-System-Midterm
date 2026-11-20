@@ -1,3 +1,5 @@
+
+import AppLayout from '@/layouts/app-layout';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { FormEvent } from 'react';
 
@@ -8,84 +10,91 @@ export default function Create() {
         price: '',
     });
 
-    const submit = (e: FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
+    const submit = (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
 
-        post('/menu-items', {
-            onSuccess: () => {
-                // Laravel redirects to the menu list.
-            },
-        });
+        const price = Number(data.price);
+
+        if (
+            data.price.trim() === '' ||
+            !Number.isFinite(price) ||
+            price < 0
+        ) {
+            return;
+        }
+
+        post('/menu-items');
     };
 
     const inputStyle =
-        'w-full rounded-xl border border-purple-200 bg-white px-4 py-3 text-purple-950 outline-none transition placeholder:text-purple-300 focus:border-purple-500 focus:ring-2 focus:ring-purple-100';
+        'w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100';
 
     return (
-        <>
+        <AppLayout>
             <Head title="Add Menu Item" />
 
-            <div className="min-h-screen bg-purple-50 px-6 py-10">
+            <main className="min-h-screen bg-gray-100 px-4 py-8 text-slate-800 sm:px-8">
                 <div className="mx-auto max-w-4xl">
 
-                    <Link
-                        href="/menu-items"
-                        className="inline-flex items-center gap-2 text-sm font-semibold text-purple-600 hover:text-purple-900"
-                    >
-                        ← Back to Menu Items
-                    </Link>
+                    <div className="mb-6">
+                        <Link
+                            href="/menu-items"
+                            className="inline-flex items-center gap-2 text-sm font-semibold text-teal-700 transition hover:text-teal-900"
+                        >
+                            ← Back to Menu Items
+                        </Link>
+                    </div>
 
-                    <div className="mb-8 mt-7">
-                        <p className="text-sm font-bold uppercase tracking-widest text-purple-600">
+                    <header className="mb-7">
+                        <p className="mb-2 text-sm font-bold uppercase tracking-wide text-teal-700">
                             Restaurant Management
                         </p>
 
-                        <h1 className="mt-2 text-3xl font-bold text-purple-950">
+                        <h1 className="text-3xl font-bold tracking-tight text-slate-900">
                             Add Menu Item
                         </h1>
 
-                        <p className="mt-2 text-purple-600">
+                        <p className="mt-2 text-sm text-slate-500">
                             Add a new food or drink to your restaurant's pre-order menu.
                         </p>
-                    </div>
+                    </header>
 
-                    <div className="overflow-hidden rounded-2xl border border-purple-100 bg-white shadow-sm">
+                    <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
 
-                        <div className="border-b border-purple-100 px-7 py-6">
-                            <div className="flex items-center gap-3">
-                                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-100 text-2xl">
+                        <div className="border-b border-slate-200 px-6 py-5 sm:px-8">
+                            <div className="flex items-center gap-4">
+                                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-50 text-2xl">
                                     🍽️
                                 </div>
 
                                 <div>
-                                    <h2 className="text-xl font-bold text-purple-950">
+                                    <h2 className="text-lg font-bold text-slate-900">
                                         Menu Item Information
                                     </h2>
 
-                                    <p className="mt-1 text-sm text-purple-500">
+                                    <p className="mt-1 text-sm text-slate-500">
                                         Fill in the details below.
                                     </p>
                                 </div>
                             </div>
                         </div>
 
-                        <form onSubmit={submit} className="space-y-6 p-7">
+                        <form onSubmit={submit} className="space-y-6 p-6 sm:p-8">
 
-                            {/* MENU ITEM NAME */}
                             <div>
                                 <label
                                     htmlFor="name"
-                                    className="mb-2 block text-sm font-semibold text-purple-950"
+                                    className="mb-2 block text-sm font-semibold text-slate-700"
                                 >
-                                    Food Name *
+                                    Food Name <span className="text-red-500">*</span>
                                 </label>
 
                                 <input
                                     id="name"
                                     type="text"
                                     value={data.name}
-                                    onChange={(e) =>
-                                        setData('name', e.target.value)
+                                    onChange={(event) =>
+                                        setData('name', event.target.value)
                                     }
                                     placeholder="Example: Chicken Adobo"
                                     className={inputStyle}
@@ -99,27 +108,24 @@ export default function Create() {
                                 )}
                             </div>
 
-                            {/* CATEGORY */}
                             <div>
                                 <label
                                     htmlFor="category"
-                                    className="mb-2 block text-sm font-semibold text-purple-950"
+                                    className="mb-2 block text-sm font-semibold text-slate-700"
                                 >
-                                    Food Category *
+                                    Food Category <span className="text-red-500">*</span>
                                 </label>
 
                                 <select
                                     id="category"
                                     value={data.category}
-                                    onChange={(e) =>
-                                        setData('category', e.target.value)
+                                    onChange={(event) =>
+                                        setData('category', event.target.value)
                                     }
                                     className={inputStyle}
                                     required
                                 >
-                                    <option value="">
-                                        Select food category
-                                    </option>
+                                    <option value="">Select food category</option>
                                     <option value="Appetizer">Appetizer</option>
                                     <option value="Main Course">Main Course</option>
                                     <option value="Side Dish">Side Dish</option>
@@ -134,17 +140,16 @@ export default function Create() {
                                 )}
                             </div>
 
-                            {/* PRICE */}
                             <div>
                                 <label
                                     htmlFor="price"
-                                    className="mb-2 block text-sm font-semibold text-purple-950"
+                                    className="mb-2 block text-sm font-semibold text-slate-700"
                                 >
-                                    Item Price (₱) *
+                                    Item Price (₱) <span className="text-red-500">*</span>
                                 </label>
 
                                 <div className="relative">
-                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 font-semibold text-purple-500">
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 font-semibold text-teal-700">
                                         ₱
                                     </span>
 
@@ -154,14 +159,18 @@ export default function Create() {
                                         min="0"
                                         step="0.01"
                                         value={data.price}
-                                        onChange={(e) =>
-                                            setData('price', e.target.value)
+                                        onChange={(event) =>
+                                            setData('price', event.target.value)
                                         }
                                         placeholder="0.00"
                                         className={`${inputStyle} pl-10`}
                                         required
                                     />
                                 </div>
+
+                                <p className="mt-1 text-xs text-slate-400">
+                                    Enter the menu item's price in Philippine pesos.
+                                </p>
 
                                 {errors.price && (
                                     <p className="mt-2 text-sm text-red-600">
@@ -170,29 +179,26 @@ export default function Create() {
                                 )}
                             </div>
 
-                            {/* REMINDER */}
-                            <div className="rounded-xl border border-purple-100 bg-purple-50 p-4">
+                            <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
                                 <div className="flex gap-3">
                                     <span className="text-xl">💡</span>
 
                                     <div>
-                                        <p className="font-semibold text-purple-900">
+                                        <p className="font-semibold text-slate-800">
                                             Menu Item Reminder
                                         </p>
 
-                                        <p className="mt-1 text-sm text-purple-600">
-                                            Make sure the food name, category, and price are correct before saving.
+                                        <p className="mt-1 text-sm text-slate-600">
+                                            Check the food name, category, and price before saving.
                                         </p>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* BUTTONS */}
-                            <div className="flex flex-col-reverse justify-end gap-3 border-t border-purple-100 pt-6 sm:flex-row">
-
+                            <div className="flex flex-col-reverse justify-end gap-3 border-t border-slate-200 pt-6 sm:flex-row">
                                 <Link
                                     href="/menu-items"
-                                    className="rounded-xl border border-purple-200 px-7 py-3 text-center font-semibold text-purple-700 hover:bg-purple-50"
+                                    className="rounded-lg border border-slate-300 bg-white px-6 py-3 text-center text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                                 >
                                     Cancel
                                 </Link>
@@ -200,23 +206,19 @@ export default function Create() {
                                 <button
                                     type="submit"
                                     disabled={processing}
-                                    className="rounded-xl bg-purple-700 px-7 py-3 font-semibold text-white shadow-sm transition hover:bg-purple-800 disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="rounded-lg bg-teal-700 px-7 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-50"
                                 >
-                                    {processing
-                                        ? 'Saving Menu Item...'
-                                        : '+ Save Menu Item'}
+                                    {processing ? 'Saving...' : '+ Save Menu Item'}
                                 </button>
-
                             </div>
                         </form>
-                    </div>
+                    </section>
 
-                    <p className="mt-6 text-center text-sm text-purple-400">
-                        Restaurant Management System © 2026
-                    </p>
-
+                    <footer className="py-7 text-center text-sm text-slate-400">
+                        Restaurant Reservation &amp; Pre-Order System © 2026
+                    </footer>
                 </div>
-            </div>
-        </>
+            </main>
+        </AppLayout>
     );
 }

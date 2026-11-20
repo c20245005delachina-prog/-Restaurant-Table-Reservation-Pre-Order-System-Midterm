@@ -1,3 +1,4 @@
+
 <?php
 
 use Illuminate\Database\Migrations\Migration;
@@ -10,11 +11,22 @@ return new class extends Migration
     {
         Schema::create('reservation_items', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('reservation_id')->constrained('reservations')->onDelete('cascade');
-            $table->foreignId('menu_item_id')->constrained('menu_items')->onDelete('restrict');
+
+            $table->foreignId('reservation_id')
+                ->constrained('reservations')
+                ->onDelete('cascade');
+
+            $table->foreignId('menu_item_id')
+                ->constrained('menu_items')
+                ->onDelete('restrict');
+
             $table->unsignedInteger('quantity');
+
             $table->decimal('unit_price', 10, 2);
+
             $table->timestamps();
+
+            $table->index(['reservation_id', 'menu_item_id']);
         });
     }
 

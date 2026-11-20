@@ -9,12 +9,52 @@ use Illuminate\Support\Facades\DB;
 class CustomerService
 {
     /**
+     * Sanitize customer name.
+     */
+    private function sanitizeName(string $name): string
+    {
+        return trim(strip_tags($name));
+    }
+
+    /**
+     * Sanitize contact number.
+     * Keep only numbers and an optional leading plus sign.
+     */
+    private function sanitizeContactNumber(string $contactNumber): string
+    {
+        $contactNumber = trim(strip_tags($contactNumber));
+
+        $contactNumber = preg_replace('/[^\d+]/', '', $contactNumber) ?? '';
+
+        // Allow a plus sign only at the beginning.
+        $contactNumber = preg_replace('/(?!^)\+/', '', $contactNumber) ?? '';
+
+        return $contactNumber;
+    }
+
+    /**
+     * Sanitize search input.
+     */
+    private function sanitizeSearch(?string $search): ?string
+    {
+        if ($search === null) {
+            return null;
+        }
+
+        $search = trim(strip_tags($search));
+
+        return $search !== '' ? $search : null;
+    }
+
+    /**
      * Display customers with search and pagination.
      */
     public function paginate(
         ?string $search = null,
         int $perPage = 10
     ): LengthAwarePaginator {
+        $search = $this->sanitizeSearch($search);
+
         return Customer::query()
             ->when($search, function ($query, $search) {
                 $query->where(function ($subQuery) use ($search) {
@@ -23,7 +63,7 @@ class CustomerService
                         'like',
                         "%{$search}%"
                     )->orWhere(
-                        'customer_number',
+                        'contact_number',
                         'like',
                         "%{$search}%"
                     );
@@ -39,11 +79,17 @@ class CustomerService
      */
     public function createCustomer(array $data): Customer
     {
-        return DB::transaction(function () use ($data) {
-            return Customer::create([
-                'customer_name' => trim(strip_tags($data['customer_name'])),
-                'customer_number' => trim(strip_tags($data['customer_number'])),
-            ]);
+        $cleanData = [
+            'customer_name' => $this->sanitizeName(
+                (string) ($data['customer_name'] ?? '')
+            ),
+            'contact_number' => $this->sanitizeContactNumber(
+                (string) ($data['contact_number'] ?? '')
+            ),
+        ];
+
+        return DB::transaction(function () use ($cleanData) {
+            return Customer::create($cleanData);
         });
     }
 
@@ -54,13 +100,19 @@ class CustomerService
         array $data,
         int $id
     ): Customer {
-        return DB::transaction(function () use ($data, $id) {
+        $cleanData = [
+            'customer_name' => $this->sanitizeName(
+                (string) ($data['customer_name'] ?? '')
+            ),
+            'contact_number' => $this->sanitizeContactNumber(
+                (string) ($data['contact_number'] ?? '')
+            ),
+        ];
+
+        return DB::transaction(function () use ($cleanData, $id) {
             $customer = Customer::findOrFail($id);
 
-            $customer->update([
-                'customer_name' => trim(strip_tags($data['customer_name'])),
-                'customer_number' => trim(strip_tags($data['customer_number'])),
-            ]);
+            $customer->update($cleanData);
 
             return $customer->refresh();
         });

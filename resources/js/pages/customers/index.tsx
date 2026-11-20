@@ -1,12 +1,13 @@
 
+import AppLayout from '@/layouts/app-layout';
 import { Head, Link, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { FormEvent, useState } from 'react';
 
 interface Customer {
     id: number;
     customer_name: string;
-    customer_number: string;
-    created_at: string;
+    contact_number: string;
+    created_at?: string;
 }
 
 interface PaginationLink {
@@ -18,178 +19,236 @@ interface PaginationLink {
 interface PaginatedCustomers {
     data: Customer[];
     links: PaginationLink[];
-    total: number;
     current_page: number;
     last_page: number;
-    from: number | null;
-    to: number | null;
+    total: number;
 }
 
-interface Props {
+interface IndexProps {
     customers: PaginatedCustomers;
-    filters: {
-        search: string;
+    filters?: {
+        search?: string;
     };
 }
 
-export default function Index({ customers, filters }: Props) {
-    const [search, setSearch] = useState(filters.search ?? '');
+export default function Index({ customers, filters }: IndexProps) {
+    const [search, setSearch] = useState(filters?.search ?? '');
 
-    const searchCustomers = (e: React.FormEvent<HTMLFormElement>) => {
+    const handleSearch = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
         router.get(
             '/customers',
-            { search },
+            { search: search.trim() },
             {
                 preserveState: true,
-                replace: true,
-            }
+                preserveScroll: true,
+            },
         );
     };
 
-    const deleteCustomer = (id: number) => {
-        if (confirm('Are you sure you want to delete this customer?')) {
-            router.delete(`/customers/${id}`);
+    const deleteCustomer = (customer: Customer) => {
+        if (
+            !window.confirm(
+                `Are you sure you want to delete ${customer.customer_name}?`,
+            )
+        ) {
+            return;
         }
+
+        router.delete(`/customers/${customer.id}`, {
+            preserveScroll: true,
+        });
     };
 
     return (
-        <>
+        <AppLayout>
             <Head title="Customer Management" />
 
-            <div className="min-h-screen bg-purple-50 px-6 py-10">
-                <div className="mx-auto max-w-6xl">
+            <div className="min-h-screen bg-gray-100 px-6 py-8">
+                <div className="mx-auto max-w-7xl">
 
-                    {/* HEADER */}
+                    {/* PAGE HEADER */}
                     <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                         <div>
-                            <h1 className="text-3xl font-bold text-purple-900">
+                            <p className="text-sm font-semibold uppercase tracking-wider text-teal-700">
+                                Restaurant Management
+                            </p>
+
+                            <h1 className="mt-2 text-3xl font-bold text-gray-900">
                                 Customer Management
                             </h1>
-                            <p className="mt-2 text-purple-600">
-                                Manage your restaurant customers.
+
+                            <p className="mt-2 text-sm text-gray-500">
+                                Manage your registered customers and their contact information.
                             </p>
                         </div>
 
-                        <Link
-                            href="/customers/create"
-                            className="rounded-xl bg-purple-700 px-6 py-3 text-center font-semibold text-white shadow-md transition hover:-translate-y-1 hover:bg-purple-800"
-                        >
-                            + Add Customer
-                        </Link>
+                        <div className="flex flex-wrap gap-3">
+                            <Link
+                                href="/dashboard"
+                                className="rounded-lg border border-gray-300 bg-white px-5 py-3 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50"
+                            >
+                                ← Dashboard
+                            </Link>
+
+                            <Link
+                                href="/customers/create"
+                                className="rounded-lg bg-teal-700 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800"
+                            >
+                                + Add Customer
+                            </Link>
+                        </div>
                     </div>
 
                     {/* SUMMARY CARD */}
-                    <div className="mb-8 grid gap-5 sm:grid-cols-2">
-                        <div className="rounded-2xl border border-purple-100 bg-white p-6 shadow-sm">
-                            <p className="text-sm font-medium text-purple-500">
-                                Total Customers
-                            </p>
+                    <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-500">
+                                        Total Customers
+                                    </p>
 
-                            <h2 className="mt-2 text-3xl font-bold text-purple-900">
-                                {customers.total}
-                            </h2>
+                                    <h2 className="mt-2 text-3xl font-bold text-gray-900">
+                                        {customers.total}
+                                    </h2>
+                                </div>
+
+                                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-50 text-2xl">
+                                    👥
+                                </div>
+                            </div>
                         </div>
 
-                        <div className="rounded-2xl border border-pink-200 bg-pink-100/70 p-6 shadow-sm">
-                            <p className="text-sm font-medium text-pink-600">
-                                Current Page Records
-                            </p>
+                        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-500">
+                                        Current Page
+                                    </p>
 
-                            <h2 className="mt-2 text-3xl font-bold text-purple-900">
-                                {customers.data.length}
-                            </h2>
+                                    <h2 className="mt-2 text-3xl font-bold text-gray-900">
+                                        {customers.current_page} / {customers.last_page}
+                                    </h2>
+                                </div>
+
+                                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-yellow-50 text-2xl">
+                                    📋
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    {/* SEARCH */}
-                    <form
-                        onSubmit={searchCustomers}
-                        className="mb-6 flex flex-col gap-3 sm:flex-row"
-                    >
-                        <input
-                            type="text"
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            placeholder="Search customer name or number..."
-                            className="w-full rounded-xl border border-purple-200 bg-white px-4 py-3 text-purple-900 outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-100"
-                        />
+                    {/* CUSTOMER TABLE CARD */}
+                    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
 
-                        <button
-                            type="submit"
-                            className="rounded-xl bg-purple-700 px-6 py-3 font-semibold text-white transition hover:bg-purple-800"
-                        >
-                            Search
-                        </button>
+                        {/* TABLE HEADER */}
+                        <div className="flex flex-col justify-between gap-4 border-b border-gray-200 px-6 py-5 sm:flex-row sm:items-center">
+                            <div>
+                                <h2 className="text-lg font-bold text-gray-900">
+                                    Registered Customers
+                                </h2>
 
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setSearch('');
-                                router.get('/customers');
-                            }}
-                            className="rounded-xl border border-purple-200 px-6 py-3 font-semibold text-purple-700 transition hover:bg-purple-100"
-                        >
-                            Clear
-                        </button>
-                    </form>
+                                <p className="mt-1 text-sm text-gray-500">
+                                    View and manage customer records.
+                                </p>
+                            </div>
 
-                    {/* CUSTOMER TABLE */}
-                    <div className="overflow-hidden rounded-2xl border border-purple-100 bg-white shadow-lg">
-                        <div className="border-b border-purple-100 bg-purple-100/70 px-6 py-5">
-                            <h2 className="text-lg font-bold text-purple-900">
-                                Customer List
-                            </h2>
+                            {/* SEARCH */}
+                            <form
+                                onSubmit={handleSearch}
+                                className="flex w-full gap-2 sm:max-w-md"
+                            >
+                                <input
+                                    type="search"
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    placeholder="Search name or contact number..."
+                                    className="min-w-0 flex-1 rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-teal-600 focus:ring-4 focus:ring-teal-50"
+                                />
 
-                            <p className="mt-1 text-sm text-purple-600">
-                                View and manage registered customers.
-                            </p>
+                                <button
+                                    type="submit"
+                                    className="rounded-lg bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-800"
+                                >
+                                    Search
+                                </button>
+                            </form>
                         </div>
 
+                        {/* TABLE */}
                         <div className="overflow-x-auto">
-                            <table className="w-full text-left">
-                                <thead className="bg-purple-50 text-sm font-semibold text-purple-800">
+                            <table className="w-full text-left text-sm">
+                                <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
                                     <tr>
-                                        <th className="px-6 py-4">ID</th>
-                                        <th className="px-6 py-4">Customer Name</th>
-                                        <th className="px-6 py-4">Customer Number</th>
-                                        <th className="px-6 py-4 text-center">Actions</th>
+                                        <th className="px-6 py-4 font-semibold">
+                                            Customer
+                                        </th>
+
+                                        <th className="px-6 py-4 font-semibold">
+                                            Contact Number
+                                        </th>
+
+                                        <th className="px-6 py-4 text-center font-semibold">
+                                            Actions
+                                        </th>
                                     </tr>
                                 </thead>
 
-                                <tbody className="divide-y divide-purple-100">
+                                <tbody className="divide-y divide-gray-100">
                                     {customers.data.length > 0 ? (
                                         customers.data.map((customer) => (
                                             <tr
                                                 key={customer.id}
-                                                className="transition hover:bg-pink-50"
+                                                className="transition hover:bg-gray-50"
                                             >
-                                                <td className="px-6 py-4 text-purple-600">
-                                                    #{customer.id}
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-50 font-bold text-teal-700">
+                                                            {customer.customer_name
+                                                                .charAt(0)
+                                                                .toUpperCase()}
+                                                        </div>
+
+                                                        <div>
+                                                            <p className="font-semibold text-gray-900">
+                                                                {customer.customer_name}
+                                                            </p>
+
+                                                            <p className="text-xs text-gray-400">
+                                                                Customer #{customer.id}
+                                                            </p>
+                                                        </div>
+                                                    </div>
                                                 </td>
 
-                                                <td className="px-6 py-4 font-semibold text-purple-900">
-                                                    {customer.customer_name}
-                                                </td>
-
-                                                <td className="px-6 py-4 text-purple-700">
-                                                    {customer.customer_number}
+                                                <td className="px-6 py-4 text-gray-600">
+                                                    {customer.contact_number}
                                                 </td>
 
                                                 <td className="px-6 py-4">
-                                                    <div className="flex flex-wrap justify-center gap-2">
+                                                    <div className="flex items-center justify-center gap-2">
+                                                        <Link
+                                                            href={`/customers/${customer.id}`}
+                                                            className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 transition hover:bg-gray-100"
+                                                        >
+                                                            View
+                                                        </Link>
+
                                                         <Link
                                                             href={`/customers/${customer.id}/edit`}
-                                                            className="rounded-lg bg-purple-100 px-4 py-2 text-sm font-semibold text-purple-700 transition hover:bg-purple-200"
+                                                            className="rounded-lg bg-yellow-400 px-3 py-2 text-xs font-semibold text-gray-900 transition hover:bg-yellow-500"
                                                         >
                                                             Edit
                                                         </Link>
 
                                                         <button
                                                             type="button"
-                                                            onClick={() => deleteCustomer(customer.id)}
-                                                            className="rounded-lg bg-pink-100 px-4 py-2 text-sm font-semibold text-pink-700 transition hover:bg-pink-200"
+                                                            onClick={() =>
+                                                                deleteCustomer(customer)
+                                                            }
+                                                            className="rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-100"
                                                         >
                                                             Delete
                                                         </button>
@@ -200,16 +259,25 @@ export default function Index({ customers, filters }: Props) {
                                     ) : (
                                         <tr>
                                             <td
-                                                colSpan={4}
-                                                className="px-6 py-12 text-center"
+                                                colSpan={3}
+                                                className="px-6 py-16 text-center"
                                             >
-                                                <p className="text-lg font-semibold text-purple-800">
-                                                    No Customers Yet
+                                                <div className="text-4xl">👥</div>
+
+                                                <p className="mt-3 font-semibold text-gray-700">
+                                                    No customers found
                                                 </p>
 
-                                                <p className="mt-2 text-sm text-purple-500">
-                                                    Click Add Customer to register your first customer.
+                                                <p className="mt-1 text-sm text-gray-500">
+                                                    Add a new customer or try a different search.
                                                 </p>
+
+                                                <Link
+                                                    href="/customers/create"
+                                                    className="mt-4 inline-block rounded-lg bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-800"
+                                                >
+                                                    + Add Customer
+                                                </Link>
                                             </td>
                                         </tr>
                                     )}
@@ -218,60 +286,59 @@ export default function Index({ customers, filters }: Props) {
                         </div>
 
                         {/* PAGINATION */}
-                        <div className="flex flex-col items-center justify-between gap-4 border-t border-purple-100 px-6 py-5 sm:flex-row">
-                            <p className="text-sm text-purple-600">
-                                Showing {customers.from ?? 0} to {customers.to ?? 0} of {customers.total} customers
-                            </p>
+                        {customers.links.length > 0 && (
+                            <div className="flex flex-wrap items-center justify-between gap-4 border-t border-gray-200 px-6 py-4">
+                                <p className="text-sm text-gray-500">
+                                    Page {customers.current_page} of {customers.last_page}
+                                </p>
 
-                            <div className="flex flex-wrap justify-center gap-2">
-                                {customers.links.map((link, index) => (
-                                    <button
-                                        key={index}
-                                        type="button"
-                                        disabled={!link.url}
-                                        onClick={() => {
-                                            if (link.url) {
-                                                router.get(
-                                                    link.url,
-                                                    {},
-                                                    {
-                                                        preserveState: true,
+                                <div className="flex flex-wrap gap-1">
+                                    {customers.links.map((link, index) => (
+                                        <button
+                                            key={index}
+                                            type="button"
+                                            disabled={!link.url}
+                                            onClick={() => {
+                                                if (link.url) {
+                                                    router.visit(link.url, {
                                                         preserveScroll: true,
-                                                    }
-                                                );
-                                            }
-                                        }}
-                                        className={`rounded-lg px-3 py-2 text-sm font-semibold ${
-                                            link.active
-                                                ? 'bg-purple-700 text-white'
-                                                : 'border border-purple-200 bg-white text-purple-700 hover:bg-purple-50'
-                                        } disabled:cursor-not-allowed disabled:opacity-40`}
-                                        dangerouslySetInnerHTML={{ __html: link.label }}
-                                    />
-                                ))}
+                                                        preserveState: true,
+                                                    });
+                                                }
+                                            }}
+                                            className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+                                                link.active
+                                                    ? 'bg-teal-700 text-white'
+                                                    : 'border border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                                            } disabled:cursor-not-allowed disabled:opacity-40`}
+                                            dangerouslySetInnerHTML={{
+                                                __html: link.label,
+                                            }}
+                                        />
+                                    ))}
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </div>
 
-                    {/* FOOTER LINKS */}
-                    <div className="mt-8 flex flex-wrap justify-between gap-4">
-                        <Link
-                            href="/dashboard"
-                            className="font-semibold text-purple-700 transition hover:text-pink-600"
-                        >
-                            ← Back to Dashboard
-                        </Link>
+                    {/* INFORMATION NOTE */}
+                    <div className="mt-6 flex items-start gap-3 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
+                        <span className="text-lg text-yellow-600">!</span>
 
-                        <Link
-                            href="/reservations"
-                            className="font-semibold text-purple-700 transition hover:text-pink-600"
-                        >
-                            Go to Reservations →
-                        </Link>
+                        <div>
+                            <p className="text-sm font-bold text-gray-800">
+                                Customer Records
+                            </p>
+
+                            <p className="mt-1 text-sm text-gray-600">
+                                Keep customer information accurate and up to date.
+                                Make sure to verify the contact number before saving changes.
+                            </p>
+                        </div>
                     </div>
 
                 </div>
             </div>
-        </>
+        </AppLayout>
     );
 }

@@ -8,17 +8,19 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('reservations', function (Blueprint $table) {
-            $table->unsignedInteger('party_size')
-                ->default(1)
-                ->after('reservation_time');
-        });
+        if (!Schema::hasColumn('reservations', 'party_size')) {
+            Schema::table('reservations', function (Blueprint $table) {
+                $table->unsignedInteger('party_size')->default(1);
+            });
+        }
     }
 
     public function down(): void
     {
-        Schema::table('reservations', function (Blueprint $table) {
-            $table->dropColumn('party_size');
-        });
+        if (Schema::hasColumn('reservations', 'party_size')) {
+            Schema::table('reservations', function (Blueprint $table) {
+                $table->dropColumn('party_size');
+            });
+        }
     }
 };

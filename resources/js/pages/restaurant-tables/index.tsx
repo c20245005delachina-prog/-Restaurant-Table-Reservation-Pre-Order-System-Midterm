@@ -1,5 +1,6 @@
 
-import { Head, Link } from '@inertiajs/react';
+import AppLayout from '@/layouts/app-layout';
+import { Head, Link, router } from '@inertiajs/react';
 
 interface RestaurantTable {
     id: number;
@@ -19,127 +20,210 @@ interface PaginatedTables {
     links: PaginationLink[];
     total?: number;
     current_page?: number;
+    last_page?: number;
+    per_page?: number;
 }
 
 interface Props {
     tables: PaginatedTables;
 }
 
+function paginationLabel(label: string) {
+    return label
+        .replace(/&laquo;/g, '«')
+        .replace(/&raquo;/g, '»')
+        .replace(/&amp;/g, '&')
+        .replace(/<[^>]*>/g, '')
+        .trim();
+}
+
 export default function Index({ tables }: Props) {
     const totalReservations = tables.data.reduce(
         (total, table) => total + (table.reservations_count ?? 0),
-        0
+        0,
     );
 
+    const currentPage = tables.current_page ?? 1;
+    const lastPage = tables.last_page ?? 1;
+    const totalTables = tables.total ?? tables.data.length;
+
+    const perPage = tables.per_page ?? 10;
+
+    const startNumber =
+        totalTables === 0 ? 0 : (currentPage - 1) * perPage + 1;
+
+    const endNumber = Math.min(currentPage * perPage, totalTables);
+
     return (
-        <>
+        <AppLayout>
             <Head title="Restaurant Tables" />
 
-            <main className="min-h-screen bg-slate-50 px-4 py-8 text-slate-800 sm:px-8">
-                <div className="mx-auto max-w-6xl">
-                    <header className="mb-8 flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
+            <main className="min-h-screen bg-gray-100 px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
+                <div className="mx-auto w-full max-w-7xl">
+
+                    {/* PAGE HEADER */}
+                    <header className="mb-7 flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
                         <div>
                             <Link
                                 href="/dashboard"
-                                className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-purple-700 transition hover:text-pink-600"
+                                className="mb-4 inline-flex items-center text-sm font-semibold text-teal-700 transition hover:text-teal-900"
                             >
-                                ← Back to Dashboard
+                                 Back to Dashboard
                             </Link>
 
-                            <p className="mb-2 text-sm font-bold uppercase tracking-wider text-purple-600">
-                                Reservation Management
+                            <p className="text-sm font-semibold uppercase tracking-wider text-teal-700">
+                                Restaurant Management
                             </p>
 
-                            <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+                            <h1 className="mt-2 text-3xl font-bold tracking-tight text-gray-950">
                                 Restaurant Tables
                             </h1>
 
-                            <p className="mt-2 text-slate-500">
+                            <p className="mt-2 text-sm text-gray-500">
                                 Manage your restaurant tables and seating capacity.
                             </p>
                         </div>
 
                         <Link
                             href="/restaurant-tables/create"
-                            className="inline-flex items-center justify-center gap-2 rounded-xl bg-purple-600 px-5 py-3 font-semibold text-white shadow-sm transition hover:bg-purple-700"
+                            className="inline-flex items-center justify-center rounded-lg bg-teal-700 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
                         >
-                            <span className="text-xl">+</span>
-                            Add Table
+                            + Add Table
                         </Link>
                     </header>
 
-                    <section className="mb-8 grid gap-5 sm:grid-cols-2">
-                        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                            <p className="text-sm font-medium text-slate-500">
-                                Tables on this page
-                            </p>
-                            <p className="mt-3 text-4xl font-bold text-purple-700">
-                                {tables.data.length}
-                            </p>
-                            <p className="mt-2 text-sm text-slate-400">
-                                Registered restaurant tables
-                            </p>
+                    {/* SUMMARY CARDS */}
+                    <section className="mb-6 grid grid-cols-1 gap-5 sm:grid-cols-2">
+
+                        {/* TOTAL TABLES */}
+                        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                            <div className="flex items-center justify-between gap-4">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-500">
+                                        Total Restaurant Tables
+                                    </p>
+
+                                    <p className="mt-2 text-3xl font-bold text-teal-800">
+                                        {totalTables}
+                                    </p>
+
+                                    <p className="mt-1 text-xs text-gray-400">
+                                        Registered restaurant tables
+                                    </p>
+                                </div>
+
+                                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-50 text-2xl">
+                                    🪑
+                                </div>
+                            </div>
                         </div>
 
-                        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                            <p className="text-sm font-medium text-slate-500">
-                                Reservations on this page
-                            </p>
-                            <p className="mt-3 text-4xl font-bold text-pink-600">
-                                {totalReservations}
-                            </p>
-                            <p className="mt-2 text-sm text-slate-400">
-                                Reservations linked to these tables
-                            </p>
+                        {/* RESERVATIONS */}
+                        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                            <div className="flex items-center justify-between gap-4">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-500">
+                                        Reservations on This Page
+                                    </p>
+
+                                    <p className="mt-2 text-3xl font-bold text-gray-950">
+                                        {totalReservations}
+                                    </p>
+
+                                    <p className="mt-1 text-xs text-gray-400">
+                                        Reservations linked to displayed tables
+                                    </p>
+                                </div>
+
+                                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-yellow-50 text-2xl">
+                                    📋
+                                </div>
+                            </div>
                         </div>
                     </section>
 
-                    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                        <div className="border-b border-slate-100 px-6 py-5">
-                            <h2 className="text-lg font-bold text-slate-800">
-                                Table List
-                            </h2>
-                            <p className="mt-1 text-sm text-slate-500">
-                                View your registered tables and their capacities.
+                    {/* TABLE LIST */}
+                    <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+
+                        {/* CARD HEADER */}
+                        <div className="flex flex-col justify-between gap-3 border-b border-gray-200 p-5 sm:flex-row sm:items-center sm:p-6">
+                            <div>
+                                <h2 className="text-lg font-bold text-gray-900">
+                                    Registered Restaurant Tables
+                                </h2>
+
+                                <p className="mt-1 text-sm text-gray-500">
+                                    View your registered tables and their seating capacities.
+                                </p>
+                            </div>
+
+                            <p className="text-sm text-gray-500">
+                                Showing{' '}
+                                <span className="font-semibold text-gray-900">
+                                    {startNumber}–{endNumber}
+                                </span>{' '}
+                                of{' '}
+                                <span className="font-semibold text-gray-900">
+                                    {totalTables}
+                                </span>{' '}
+                                tables
                             </p>
                         </div>
 
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left text-sm">
-                                <thead className="bg-purple-50 text-xs uppercase tracking-wider text-purple-700">
-                                    <tr>
-                                        <th className="px-6 py-4 font-bold">Table Number</th>
-                                        <th className="px-6 py-4 font-bold">Capacity</th>
-                                        <th className="px-6 py-4 font-bold">Reservations</th>
-                                        <th className="px-6 py-4 text-right font-bold">Status</th>
+                        {/* RESPONSIVE TABLE */}
+                        <div className="w-full overflow-x-auto">
+                            <table className="w-full min-w-[650px] text-left text-sm">
+                                <thead className="bg-gray-50">
+                                    <tr className="text-xs font-semibold uppercase tracking-wide text-gray-600">
+                                        <th className="px-5 py-4">
+                                            Table Number
+                                        </th>
+
+                                        <th className="px-5 py-4">
+                                            Seating Capacity
+                                        </th>
+
+                                        <th className="px-5 py-4">
+                                            Reservations
+                                        </th>
+
+                                        <th className="px-5 py-4 text-right">
+                                            Status
+                                        </th>
                                     </tr>
                                 </thead>
 
-                                <tbody className="divide-y divide-slate-100">
+                                <tbody className="divide-y divide-gray-100">
                                     {tables.data.length > 0 ? (
                                         tables.data.map((table) => (
                                             <tr
                                                 key={table.id}
-                                                className="transition hover:bg-purple-50/50"
+                                                className="transition hover:bg-gray-50"
                                             >
-                                                <td className="whitespace-nowrap px-6 py-5">
-                                                    <span className="font-semibold text-slate-800">
+                                                {/* TABLE NUMBER */}
+                                                <td className="whitespace-nowrap px-5 py-5">
+                                                    <span className="font-semibold text-gray-900">
                                                         Table {table.table_number}
                                                     </span>
                                                 </td>
 
-                                                <td className="whitespace-nowrap px-6 py-5">
-                                                    <span className="rounded-full bg-violet-100 px-3 py-1 font-medium text-violet-700">
+                                                {/* CAPACITY */}
+                                                <td className="whitespace-nowrap px-5 py-5">
+                                                    <span className="inline-flex rounded-full bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-800">
                                                         {table.table_capacity}{' '}
-                                                        {table.table_capacity === 1 ? 'seat' : 'seats'}
+                                                        {table.table_capacity === 1
+                                                            ? 'seat'
+                                                            : 'seats'}
                                                     </span>
                                                 </td>
 
-                                                <td className="whitespace-nowrap px-6 py-5 font-semibold text-slate-700">
+                                                {/* RESERVATIONS */}
+                                                <td className="whitespace-nowrap px-5 py-5 font-semibold text-gray-800">
                                                     {table.reservations_count ?? 0}
                                                 </td>
 
-                                                <td className="whitespace-nowrap px-6 py-5 text-right">
+                                                {/* STATUS */}
+                                                <td className="whitespace-nowrap px-5 py-5 text-right">
                                                     <span className="inline-flex items-center gap-2 rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">
                                                         <span className="h-2 w-2 rounded-full bg-green-500" />
                                                         Registered
@@ -149,17 +233,25 @@ export default function Index({ tables }: Props) {
                                         ))
                                     ) : (
                                         <tr>
-                                            <td colSpan={4} className="px-6 py-16 text-center">
-                                                <div className="text-4xl">🪑</div>
-                                                <h3 className="mt-4 text-lg font-bold text-slate-800">
-                                                    No tables yet
+                                            <td
+                                                colSpan={4}
+                                                className="px-5 py-14 text-center"
+                                            >
+                                                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-teal-50 text-3xl">
+                                                    🪑
+                                                </div>
+
+                                                <h3 className="mt-4 font-bold text-gray-900">
+                                                    No restaurant tables yet
                                                 </h3>
-                                                <p className="mt-2 text-sm text-slate-500">
+
+                                                <p className="mt-1 text-sm text-gray-500">
                                                     Add your first restaurant table to get started.
                                                 </p>
+
                                                 <Link
                                                     href="/restaurant-tables/create"
-                                                    className="mt-5 inline-flex rounded-xl bg-purple-600 px-5 py-2.5 font-semibold text-white transition hover:bg-purple-700"
+                                                    className="mt-5 inline-flex rounded-lg bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-800"
                                                 >
                                                     + Add Your First Table
                                                 </Link>
@@ -170,54 +262,50 @@ export default function Index({ tables }: Props) {
                             </table>
                         </div>
 
-                        {tables.links.length > 0 && (
+                        {/* PAGINATION */}
+                        {tables.links.length > 0 && lastPage > 1 && (
                             <nav
-                                aria-label="Table pagination"
-                                className="flex flex-wrap items-center justify-between gap-4 border-t border-slate-100 px-6 py-4"
+                                aria-label="Restaurant table pagination"
+                                className="flex flex-col justify-between gap-4 border-t border-gray-200 px-5 py-4 sm:flex-row sm:items-center"
                             >
-                                <p className="text-sm text-slate-500">
-                                    {tables.total !== undefined
-                                        ? `Total ${tables.total} tables`
-                                        : `${tables.data.length} tables on this page`}
+                                <p className="text-sm text-gray-500">
+                                    Page {currentPage} of {lastPage}
                                 </p>
 
-                                <div className="flex flex-wrap gap-2">
+                                <div className="flex flex-wrap items-center justify-center gap-2">
                                     {tables.links.map((link, index) => (
-                                        <Link
+                                        <button
                                             key={`${index}-${link.label}`}
-                                            href={link.url ?? '#'}
-                                            preserveScroll
-                                            aria-disabled={!link.url}
-                                            onClick={(event) => {
-                                                if (!link.url) {
-                                                    event.preventDefault();
+                                            type="button"
+                                            disabled={!link.url}
+                                            onClick={() => {
+                                                if (link.url) {
+                                                    router.visit(link.url, {
+                                                        preserveScroll: true,
+                                                        preserveState: true,
+                                                    });
                                                 }
                                             }}
-                                            className={`rounded-lg border px-3 py-2 text-sm font-medium transition ${
+                                            className={`min-w-10 rounded-lg border px-3 py-2 text-sm font-semibold transition ${
                                                 link.active
-                                                    ? 'border-purple-600 bg-purple-600 text-white'
-                                                    : link.url
-                                                      ? 'border-slate-200 bg-white text-purple-700 hover:bg-purple-50'
-                                                      : 'cursor-not-allowed border-slate-100 text-slate-300'
-                                            }`}
+                                                    ? 'border-teal-700 bg-teal-700 text-white'
+                                                    : 'border-gray-200 bg-white text-gray-700 hover:border-yellow-400 hover:bg-yellow-50'
+                                            } disabled:cursor-not-allowed disabled:opacity-40`}
                                         >
-                                            <span
-                                                dangerouslySetInnerHTML={{
-                                                    __html: link.label,
-                                                }}
-                                            />
-                                        </Link>
+                                            {paginationLabel(link.label)}
+                                        </button>
                                     ))}
                                 </div>
                             </nav>
                         )}
                     </section>
 
-                    <footer className="py-8 text-center text-sm text-slate-400">
-                        Restaurant Reservation &amp; Pre-Order System
+                    {/* FOOTER */}
+                    <footer className="mt-6 pb-4 text-center text-xs text-gray-400">
+                        Restaurant Table Reservation &amp; Pre-Order System © 2026
                     </footer>
                 </div>
             </main>
-        </>
+        </AppLayout>
     );
 }

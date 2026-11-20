@@ -10,11 +10,23 @@ return new class extends Migration
     {
         Schema::create('reservations', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('customer_id')->constrained('customers')->onDelete('cascade');
-            $table->foreignId('restaurant_table_id')->constrained('restaurant_tables')->onDelete('restrict');
+
+            $table->foreignId('customer_id')
+                ->constrained('customers')
+                ->onDelete('cascade');
+
+            $table->foreignId('restaurant_table_id')
+                ->constrained('restaurant_tables')
+                ->onDelete('restrict');
+
             $table->dateTime('reservation_time')->index();
+
+            $table->unsignedInteger('party_size');
+
             $table->decimal('total_amount', 10, 2)->default(0.00);
+
             $table->decimal('deposit_paid', 10, 2)->default(0.00);
+
             $table->timestamps();
         });
     }

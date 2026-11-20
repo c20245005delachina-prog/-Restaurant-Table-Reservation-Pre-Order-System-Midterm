@@ -46,11 +46,11 @@ class RestaurantTableController extends Controller
 
     public function update(
         UpdateRestaurantTableRequest $request,
-        $id
+        RestaurantTable $restaurantTable
     ): RedirectResponse {
         $this->service->updateRestaurantTable(
-            $request->validated(),
-            (int) $id
+            $restaurantTable,
+            $request->validated()
         );
 
         return to_route('restaurant-tables.index')

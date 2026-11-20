@@ -1,72 +1,107 @@
+
+import AppLayout from '@/layouts/app-layout';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { FormEvent } from 'react';
 
 interface CustomerForm extends Record<string, string> {
     customer_name: string;
-    customer_number: string;
+    contact_number: string;
 }
 
 export default function Create() {
-    const { data, setData, post, processing, errors, reset } =
+    const { data, setData, post, processing, errors, transform } =
         useForm<CustomerForm>({
             customer_name: '',
-            customer_number: '',
+            contact_number: '',
         });
 
     const submit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
+        transform((formData) => ({
+            customer_name: formData.customer_name.trim(),
+            contact_number: formData.contact_number.trim(),
+        }));
+
         post('/customers', {
-            onSuccess: () => reset(),
+            preserveScroll: true,
         });
     };
 
     return (
-        <>
+        <AppLayout>
             <Head title="Add Customer" />
 
-            <div className="min-h-screen bg-purple-50 px-6 py-10">
-                <div className="mx-auto max-w-3xl">
+            <div className="min-h-screen bg-gray-100 px-6 py-8">
+                <div className="mx-auto max-w-5xl">
 
-                    {/* HEADER */}
-                    <div className="mb-8">
-                        <Link
-                            href="/customers"
-                            className="font-semibold text-purple-700 transition hover:text-pink-600"
-                        >
-                            ← Back to Customers
-                        </Link>
+                    {/* PAGE HEADER */}
+                    <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+                        <div>
+                            <p className="text-sm font-semibold uppercase tracking-wider text-teal-700">
+                                Customer Management
+                            </p>
 
-                        <h1 className="mt-6 text-3xl font-bold text-purple-900">
-                            Add New Customer
-                        </h1>
+                            <h1 className="mt-2 text-3xl font-bold text-gray-900">
+                                Add New Customer
+                            </h1>
 
-                        <p className="mt-2 text-purple-600">
-                            Register a new customer for your restaurant.
-                        </p>
-                    </div>
-
-                    {/* FORM CARD */}
-                    <div className="overflow-hidden rounded-2xl border border-purple-100 bg-white shadow-lg">
-
-                        <div className="border-b border-purple-100 bg-purple-100/70 px-8 py-5">
-                            <h2 className="text-lg font-bold text-purple-900">
-                                Customer Information
-                            </h2>
-                            <p className="mt-1 text-sm text-purple-600">
-                                Please complete all required fields.
+                            <p className="mt-2 text-sm text-gray-500">
+                                Register a customer and save their contact information.
                             </p>
                         </div>
 
-                        <form onSubmit={submit} className="space-y-6 p-8">
+                        <Link
+                            href="/customers"
+                            className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-5 py-3 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50"
+                        >
+                            ← Back to Customers
+                        </Link>
+                    </div>
+
+                    {/* FORM CARD */}
+                    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+
+                        {/* CARD HEADER */}
+                        <div className="flex items-center gap-4 border-b border-gray-200 px-6 py-5 sm:px-8">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-50 text-teal-700">
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="h-6 w-6"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="1.8"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2m12-13a4 4 0 1 1-8 0 4 4 0 0 1 8 0Zm5 13v-2a4 4 0 0 0-3-3.87M17 3.13a4 4 0 0 1 0 7.75"
+                                    />
+                                </svg>
+                            </div>
+
+                            <div>
+                                <h2 className="text-lg font-bold text-gray-900">
+                                    Customer Information
+                                </h2>
+                                <p className="text-sm text-gray-500">
+                                    Enter the customer's details below.
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* FORM */}
+                        <form onSubmit={submit} className="space-y-6 p-6 sm:p-8">
 
                             {/* CUSTOMER NAME */}
                             <div>
                                 <label
                                     htmlFor="customer_name"
-                                    className="mb-2 block text-sm font-semibold text-purple-900"
+                                    className="mb-2 block text-sm font-semibold text-gray-700"
                                 >
                                     Customer Name
+                                    <span className="ml-1 text-red-500">*</span>
                                 </label>
 
                                 <input
@@ -77,8 +112,10 @@ export default function Create() {
                                         setData('customer_name', e.target.value)
                                     }
                                     placeholder="Enter customer name"
+                                    maxLength={255}
+                                    autoComplete="name"
                                     required
-                                    className="w-full rounded-xl border border-purple-200 bg-purple-50/50 px-4 py-3 text-purple-900 outline-none transition placeholder:text-purple-300 focus:border-purple-500 focus:bg-white focus:ring-4 focus:ring-purple-100"
+                                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-teal-600 focus:ring-4 focus:ring-teal-50"
                                 />
 
                                 {errors.customer_name && (
@@ -88,40 +125,42 @@ export default function Create() {
                                 )}
                             </div>
 
-                            {/* CUSTOMER NUMBER */}
+                            {/* CONTACT NUMBER */}
                             <div>
                                 <label
-                                    htmlFor="customer_number"
-                                    className="mb-2 block text-sm font-semibold text-purple-900"
+                                    htmlFor="contact_number"
+                                    className="mb-2 block text-sm font-semibold text-gray-700"
                                 >
-                                    Customer Number
+                                    Contact Number
+                                    <span className="ml-1 text-red-500">*</span>
                                 </label>
 
                                 <input
-                                    id="customer_number"
-                                    type="text"
-                                    value={data.customer_number}
+                                    id="contact_number"
+                                    type="tel"
+                                    value={data.contact_number}
                                     onChange={(e) =>
-                                        setData('customer_number', e.target.value)
+                                        setData('contact_number', e.target.value)
                                     }
-                                    placeholder="Enter customer number"
+                                    placeholder="Enter contact number"
+                                    maxLength={30}
+                                    autoComplete="tel"
                                     required
-                                    className="w-full rounded-xl border border-purple-200 bg-purple-50/50 px-4 py-3 text-purple-900 outline-none transition placeholder:text-purple-300 focus:border-purple-500 focus:bg-white focus:ring-4 focus:ring-purple-100"
+                                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-teal-600 focus:ring-4 focus:ring-teal-50"
                                 />
 
-                                {errors.customer_number && (
+                                {errors.contact_number && (
                                     <p className="mt-2 text-sm font-medium text-red-600">
-                                        {errors.customer_number}
+                                        {errors.contact_number}
                                     </p>
                                 )}
                             </div>
 
-                            {/* BUTTONS */}
-                            <div className="flex flex-col-reverse gap-3 border-t border-purple-100 pt-6 sm:flex-row sm:justify-end">
-
+                            {/* FORM ACTIONS */}
+                            <div className="flex flex-col-reverse gap-3 border-t border-gray-200 pt-6 sm:flex-row sm:justify-end">
                                 <Link
                                     href="/customers"
-                                    className="rounded-xl border border-purple-200 px-6 py-3 text-center font-semibold text-purple-700 transition hover:bg-purple-50"
+                                    className="rounded-lg border border-gray-300 bg-white px-6 py-3 text-center text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
                                 >
                                     Cancel
                                 </Link>
@@ -129,24 +168,30 @@ export default function Create() {
                                 <button
                                     type="submit"
                                     disabled={processing}
-                                    className="rounded-xl bg-purple-700 px-6 py-3 font-semibold text-white shadow-md transition duration-300 hover:-translate-y-1 hover:bg-purple-800 disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="rounded-lg bg-teal-700 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-50"
                                 >
                                     {processing ? 'Saving...' : 'Save Customer'}
                                 </button>
-
                             </div>
                         </form>
                     </div>
 
-                    {/* NOTE */}
-                    <div className="mt-6 rounded-xl border border-pink-200 bg-pink-100/60 p-4">
-                        <p className="text-sm text-purple-800">
-                            <strong>Reminder:</strong> Make sure the customer name and number are correct before saving.
-                        </p>
+                    {/* INFORMATION NOTE */}
+                    <div className="mt-6 flex items-start gap-3 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
+                        <span className="text-lg text-yellow-600">!</span>
+
+                        <div>
+                            <p className="text-sm font-bold text-gray-800">
+                                Important Reminder
+                            </p>
+                            <p className="mt-1 text-sm text-gray-600">
+                                Please double-check the customer's name and contact number before saving the record.
+                            </p>
+                        </div>
                     </div>
 
                 </div>
             </div>
-        </>
+        </AppLayout>
     );
 }

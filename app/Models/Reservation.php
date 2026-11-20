@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Reservation extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'customer_id',
         'restaurant_table_id',
@@ -21,22 +24,25 @@ class Reservation extends Model
     {
         return [
             'reservation_time' => 'datetime',
+            'party_size' => 'integer',
             'total_amount' => 'decimal:2',
             'deposit_paid' => 'decimal:2',
-            'party_size' => 'integer',
         ];
     }
 
+    // A reservation belongs to one customer.
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
     }
 
+    // A reservation belongs to one restaurant table.
     public function restaurantTable(): BelongsTo
     {
         return $this->belongsTo(RestaurantTable::class);
     }
 
+    // A reservation can have multiple pre-order items.
     public function reservationItems(): HasMany
     {
         return $this->hasMany(ReservationItem::class);

@@ -21,19 +21,16 @@ class CustomerController extends Controller
      * Display all customers.
      */
     public function index(Request $request): Response
-    {
-        $customers = $this->service->paginate(
-            $request->string('search')->toString(),
-            10
-        );
+{
+    $search = $request->query('search');
 
-        return Inertia::render('customers/index', [
-            'customers' => $customers,
-            'filters' => [
-                'search' => $request->input('search', ''),
-            ],
-        ]);
-    }
+    return Inertia::render('customers/index', [
+        'customers' => $this->service->paginate($search),
+        'filters' => [
+            'search' => $search,
+        ],
+    ]);
+}
 
     /**
      * Show the form for creating a customer.
@@ -61,14 +58,16 @@ class CustomerController extends Controller
      * Display a specific customer.
      */
     public function show(Customer $customer): Response
-    {
-        $customer->load('reservations');
+{
+    $customer->load([
+        'reservations.restaurantTable',
+        'reservations.reservationItems.menuItem',
+    ]);
 
-        return Inertia::render('customers/show', [
-            'customer' => $customer,
-        ]);
-    }
-
+    return Inertia::render('customers/show', [
+        'customer' => $customer,
+    ]);
+}
     /**
      * Show the form for editing a customer.
      */

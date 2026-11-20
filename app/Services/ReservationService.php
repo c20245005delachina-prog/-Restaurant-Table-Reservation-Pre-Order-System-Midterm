@@ -11,53 +11,163 @@ use Illuminate\Validation\ValidationException;
 
 class ReservationService
 {
-    private function cleanText(string $value): string
+    /*
+    |--------------------------------------------------------------------------
+    | Text Sanitization
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Remove HTML tags and normalize whitespace.
+     */
+    private function cleanText(?string $value): string
     {
-        return trim(preg_replace('/\s+/u', ' ', strip_tags($value)) ?? '');
+        $value = strip_tags($value ?? '');
+
+        return preg_replace('/\s+/', ' ', trim($value)) ?? '';
     }
 
-    private function cleanPhone(string $value): string
+    /**
+     * Sanitize contact numbers.
+     */
+    private function cleanPhone(?string $value): string
     {
-        $value = trim($value);
+        $value = trim(strip_tags($value ?? ''));
+
         $hasPlus = str_starts_with($value, '+');
-        $digits = preg_replace('/\D+/', '', $value) ?? '';
 
-        return ($hasPlus ? '+' : '') . $digits;
+        $phone = preg_replace('/\D+/', '', $value) ?? '';
+
+        return ($hasPlus ? '+' : '') . $phone;
     }
 
-    private function money(float $amount): float
+    /*
+    |--------------------------------------------------------------------------
+    | Numeric Sanitization
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Sanitize and validate monetary values.
+     */
+    private function money($value): float
     {
-        return round($amount, 2);
+        if (!is_numeric($value)) {
+            throw ValidationException::withMessages([
+                'deposit_paid' => 'Please enter a valid monetary amount.',
+            ]);
+        }
+
+        $amount = round((float) $value, 2);
+
+        if (!is_finite($amount) || $amount < 0) {
+            throw ValidationException::withMessages([
+                'deposit_paid' => 'The amount cannot be negative or invalid.',
+            ]);
+        }
+
+        return $amount;
     }
 
+    /**
+     * Sanitize positive integer values.
+     */
+    private function positiveInteger($value, string $field): int
+    {
+        $filtered = filter_var($value, FILTER_VALIDATE_INT);
+
+        if ($filtered === false || $filtered < 1) {
+            throw ValidationException::withMessages([
+                $field => 'Please enter a valid positive whole number.',
+            ]);
+        }
+
+        return $filtered;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Customer Management
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Find an existing customer or create a new one.
+     */
+    private function findOrCreateCustomer(
+    string $name,
+    string $phone
+): Customer {
+    $name = mb_convert_case(
+        $this->cleanText($name),
+        MB_CASE_TITLE,
+        'UTF-8'
+    );
+
+    $phone = $this->cleanPhone($phone);
+
+    $customer = Customer::firstOrCreate(
+        ['contact_number' => $phone],
+        ['customer_name' => $name]
+    );
+
+    if ($customer->customer_name !== $name) {
+        $customer->update([
+            'customer_name' => $name,
+        ]);
+    }
+
+    return $customer;
+}
+    /*
+    |--------------------------------------------------------------------------
+    | Prepare Reservation Menu Items
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Sanitize menu item IDs and quantities.
+     * Calculate totals using the current database menu prices.
+     */
     private function prepareItems(array $items): array
     {
-        $prepared = [];
+        if (empty($items)) {
+            throw ValidationException::withMessages([
+                'items' => 'Please select at least one menu item.',
+            ]);
+        }
+
+        $preparedItems = [];
         $totalCents = 0;
 
-        foreach ($items as $item) {
-            $menuItem = MenuItem::query()
-                ->lockForUpdate()
-                ->findOrFail($item['menu_item_id']);
-
-            // Store menu item names in title case.
-            $name = mb_convert_case(
-                $this->cleanText($menuItem->name),
-                MB_CASE_TITLE,
-                'UTF-8'
+        foreach ($items as $index => $item) {
+            $menuItemId = $this->positiveInteger(
+                $item['menu_item_id'] ?? null,
+                "items.{$index}.menu_item_id"
             );
 
-            $menuItem->name = $name;
-            $menuItem->save();
+            $quantity = $this->positiveInteger(
+                $item['quantity'] ?? null,
+                "items.{$index}.quantity"
+            );
 
-            $quantity = (int) $item['quantity'];
+            $menuItem = MenuItem::whereKey($menuItemId)
+                ->lockForUpdate()
+                ->firstOrFail();
+
             $unitPriceCents = (int) round(
                 (float) $menuItem->price * 100
             );
 
+            if ($unitPriceCents < 0) {
+                throw ValidationException::withMessages([
+                    "items.{$index}.menu_item_id" => 'The selected menu item has an invalid price.',
+                ]);
+            }
+
             $totalCents += $unitPriceCents * $quantity;
 
-            $prepared[] = [
+            $preparedItems[] = [
                 'menu_item_id' => $menuItem->id,
                 'quantity' => $quantity,
                 'unit_price' => $unitPriceCents / 100,
@@ -65,76 +175,113 @@ class ReservationService
         }
 
         return [
-            'items' => $prepared,
+            'items' => $preparedItems,
             'total' => $totalCents / 100,
         ];
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Reservation Validation
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Check whether the selected table can accommodate the guests.
+     */
     private function checkCapacity(
         RestaurantTable $table,
         int $partySize
     ): void {
-        if ($partySize > $table->table_capacity) {
+        if ($partySize > (int) $table->table_capacity) {
             throw ValidationException::withMessages([
-                'party_size' =>
-                    "Party size cannot exceed this table's capacity of "
-                    . $table->table_capacity . '.',
+                'party_size' => 'The selected table cannot accommodate this number of guests.',
             ]);
         }
     }
 
+    /**
+     * Validate the required deposit.
+     */
     private function checkDeposit(float $deposit, float $total): void
-    {
-        $minimumCents = (int) ceil($total * 100 * 0.20 - 0.000001);
-        $depositCents = (int) round($deposit * 100);
-
-        if ($depositCents < $minimumCents) {
-            throw ValidationException::withMessages([
-                'deposit_paid' => sprintf(
-                    'The minimum 20%% deposit is %.2f.',
-                    $minimumCents / 100
-                ),
-            ]);
-        }
+{
+    if ($deposit < 0) {
+        throw \Illuminate\Validation\ValidationException::withMessages([
+            'deposit_paid' => 'Deposit cannot be negative.',
+        ]);
     }
+}
+
+    /*
+    |--------------------------------------------------------------------------
+    | Create Reservation
+    |--------------------------------------------------------------------------
+    */
 
     public function createReservation(array $data): Reservation
     {
         return DB::transaction(function () use ($data) {
-            $table = RestaurantTable::query()
-                ->lockForUpdate()
-                ->findOrFail($data['restaurant_table_id']);
 
-            $partySize = (int) $data['party_size'];
+            // Sanitize customer information.
+            $customerName = $this->cleanText(
+                $data['customer_name'] ?? ''
+            );
+
+            $customerPhone = $this->cleanPhone(
+                $data['contact_number'] ?? ''
+            );
+
+            if ($customerName === '') {
+                throw ValidationException::withMessages([
+                    'customer_name' => 'Please enter the customer name.',
+                ]);
+            }
+
+            if ($customerPhone === '') {
+                throw ValidationException::withMessages([
+                    'contact_number' => 'Please enter the contact number.',
+                ]);
+            }
+
+            // Lock and retrieve the selected restaurant table.
+            $tableId = $this->positiveInteger(
+                $data['restaurant_table_id'] ?? null,
+                'restaurant_table_id'
+            );
+
+            $table = RestaurantTable::whereKey($tableId)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            // Sanitize party size.
+            $partySize = $this->positiveInteger(
+                $data['party_size'] ?? null,
+                'party_size'
+            );
+
             $this->checkCapacity($table, $partySize);
 
-            $prepared = $this->prepareItems($data['items']);
+            // Prepare pre-order items and calculate total.
+            $prepared = $this->prepareItems(
+                $data['items'] ?? []
+            );
+
             $total = $prepared['total'];
-            $deposit = $this->money((float) $data['deposit_paid']);
+
+            // Sanitize deposit.
+            $deposit = $this->money(
+                $data['deposit_paid'] ?? 0
+            );
 
             $this->checkDeposit($deposit, $total);
 
-           $phone = $this->cleanPhone($data['contact_number']);
-
-        $customer = Customer::firstOrCreate(
-    [
-        'customer_number' => $phone,
-    ],
-    [
-        'customer_name' => $this->cleanText(
-            $data['customer_name']
-        ),
-        'customer_number' => $phone],
-        [
-         'customer_name' => $this->cleanText($data['customer_name']),
-    ]
-);
-
-            $customer->customer_name = $this->cleanText(
-                $data['customer_name']
+            // Find or create customer.
+            $customer = $this->findOrCreateCustomer(
+                $customerName,
+                $customerPhone
             );
-            $customer->save();
 
+            // Create reservation.
             $reservation = Reservation::create([
                 'customer_id' => $customer->id,
                 'restaurant_table_id' => $table->id,
@@ -144,6 +291,7 @@ class ReservationService
                 'deposit_paid' => $deposit,
             ]);
 
+            // Save reservation pre-order items.
             $reservation->reservationItems()->createMany(
                 $prepared['items']
             );
@@ -156,71 +304,127 @@ class ReservationService
         });
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Update Reservation
+    |--------------------------------------------------------------------------
+    */
+
     public function updateReservation(
-        array $data,
-        int $id
+        Reservation $reservation,
+        array $data
     ): Reservation {
-        return DB::transaction(function () use ($data, $id) {
-            $reservation = Reservation::query()
+        return DB::transaction(function () use ($reservation, $data) {
+
+            $reservation = Reservation::whereKey($reservation->id)
                 ->lockForUpdate()
-                ->findOrFail($id);
+                ->firstOrFail();
 
-            $customer = $reservation->customer;
-            $customerData = [];
+            /*
+             * Update customer information when supplied.
+             */
 
-            if (array_key_exists('contact_number', $data)) {
-                $customerData['customer_number'] = $this->cleanPhone(
+            if (
+                array_key_exists('customer_name', $data) &&
+                array_key_exists('contact_number', $data)
+            ) {
+                $customerName = $this->cleanText(
+                    $data['customer_name']
+                );
+
+                $customerPhone = $this->cleanPhone(
                     $data['contact_number']
                 );
+
+                if ($customerName === '') {
+                    throw ValidationException::withMessages([
+                        'customer_name' => 'Please enter the customer name.',
+                    ]);
+                }
+
+                if ($customerPhone === '') {
+                    throw ValidationException::withMessages([
+                        'contact_number' => 'Please enter the contact number.',
+                    ]);
+                }
+
+                $customer = $this->findOrCreateCustomer(
+                    $customerName,
+                    $customerPhone
+                );
+
+                $reservation->customer_id = $customer->id;
             }
 
-            if ($customerData) {
-                $customer->fill($customerData)->save();
-            }
+            /*
+             * Update restaurant table.
+             */
 
-            $tableId = $data['restaurant_table_id']
-                ?? $reservation->restaurant_table_id;
+            $tableId = $this->positiveInteger(
+                $data['restaurant_table_id']
+                    ?? $reservation->restaurant_table_id,
+                'restaurant_table_id'
+            );
 
-            $table = RestaurantTable::query()
+            $table = RestaurantTable::whereKey($tableId)
                 ->lockForUpdate()
-                ->findOrFail($tableId);
+                ->firstOrFail();
 
-            $partySize = (int) (
-                $data['party_size'] ?? $reservation->party_size
+            /*
+             * Update party size.
+             */
+
+            $partySize = $this->positiveInteger(
+                $data['party_size'] ?? $reservation->party_size,
+                'party_size'
             );
 
             $this->checkCapacity($table, $partySize);
 
+            /*
+             * Update menu items when supplied.
+             */
+
             if (array_key_exists('items', $data)) {
                 $prepared = $this->prepareItems($data['items']);
+
                 $total = $prepared['total'];
+
+                $reservation->reservationItems()->delete();
+
+                $reservation->reservationItems()->createMany(
+                    $prepared['items']
+                );
             } else {
                 $total = (float) $reservation->total_amount;
             }
 
-            $deposit = $this->money((float) (
+            /*
+             * Update deposit.
+             */
+
+            $deposit = $this->money(
                 $data['deposit_paid'] ?? $reservation->deposit_paid
-            ));
+            );
 
             $this->checkDeposit($deposit, $total);
 
-            $reservation->update([
-                'restaurant_table_id' => $table->id,
-                'reservation_time' => $data['reservation_time']
-                    ?? $reservation->reservation_time,
-                'party_size' => $partySize,
-                'total_amount' => $total,
-                'deposit_paid' => $deposit,
-            ]);
+            /*
+             * Save reservation changes.
+             */
 
-            if (array_key_exists('items', $data)) {
-                $reservation->reservationItems()->delete();
-                $reservation->reservationItems()->createMany(
-                    $prepared['items']
-                );
+            $reservation->restaurant_table_id = $table->id;
+            $reservation->party_size = $partySize;
+            $reservation->total_amount = $total;
+            $reservation->deposit_paid = $deposit;
+
+            if (isset($data['reservation_time'])) {
+                $reservation->reservation_time = $data['reservation_time'];
             }
 
-            return $reservation->fresh([
+            $reservation->save();
+
+            return $reservation->load([
                 'customer',
                 'restaurantTable',
                 'reservationItems.menuItem',
@@ -228,43 +432,70 @@ class ReservationService
         });
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Create Restaurant Table
+    |--------------------------------------------------------------------------
+    */
+
     public function createRestaurantTable(array $data): RestaurantTable
     {
-        return RestaurantTable::create([
-            'table_number' => $this->cleanText($data['table_number']),
-            'table_capacity' => (int) $data['table_capacity'],
-        ]);
+        $tableNumber = $this->cleanText(
+            $data['table_number'] ?? ''
+        );
+
+        if ($tableNumber === '') {
+            throw ValidationException::withMessages([
+                'table_number' => 'Please enter a table number.',
+            ]);
+        }
+
+        $tableData = [
+            'table_number' => $tableNumber,
+            'table_capacity' => $this->positiveInteger(
+                $data['table_capacity'] ?? null,
+                'table_capacity'
+            ),
+        ];
+
+        return RestaurantTable::create($tableData);
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Update Restaurant Table
+    |--------------------------------------------------------------------------
+    */
+
     public function updateRestaurantTable(
-        array $data,
-        int $id
+        RestaurantTable $table,
+        array $data
     ): RestaurantTable {
-        return DB::transaction(function () use ($data, $id) {
-            $table = RestaurantTable::query()
-                ->lockForUpdate()
-                ->findOrFail($id);
+        $tableData = [];
 
-            $capacity = (int) $data['table_capacity'];
+        if (array_key_exists('table_number', $data)) {
+            $tableNumber = $this->cleanText(
+                $data['table_number']
+            );
 
-            $hasOversizedFutureBooking = $table->reservations()
-                ->where('reservation_time', '>', now())
-                ->where('party_size', '>', $capacity)
-                ->exists();
-
-            if ($hasOversizedFutureBooking) {
+            if ($tableNumber === '') {
                 throw ValidationException::withMessages([
-                    'table_capacity' =>
-                        'Capacity cannot be reduced below an existing future reservation.',
+                    'table_number' => 'Please enter a table number.',
                 ]);
             }
 
-            $table->update([
-                'table_number' => $this->cleanText($data['table_number']),
-                'table_capacity' => $capacity,
-            ]);
+            $tableData['table_number'] = $tableNumber;
+        }
 
-            return $table;
-        });
+        if (array_key_exists('table_capacity', $data)) {
+            $tableData['table_capacity'] = $this->positiveInteger(
+                $data['table_capacity'],
+                'table_capacity'
+            );
+        }
+
+        $table->update($tableData);
+
+        return $table->refresh();
     }
 }

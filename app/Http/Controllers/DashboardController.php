@@ -13,15 +13,35 @@ class DashboardController extends Controller
     public function index(): Response
     {
         return Inertia::render('dashboard', [
+            // Dashboard statistics
             'totalReservations' => Reservation::count(),
-            'totalCustomers' => Customer::count(),
-            'totalTables' => RestaurantTable::count(),
-            'totalDeposits' => Reservation::sum('deposit_paid'),
 
-            'recentReservations' => Reservation::with([
-                'customer',
-                'restaurantTable',
-            ])
+            'totalCustomers' => Customer::count(),
+
+            'totalTables' => RestaurantTable::count(),
+
+            'totalDeposits' => number_format(
+                (float) Reservation::sum('deposit_paid'),
+                2,
+                '.',
+                ''
+            ),
+
+            // Five most recent reservations
+            'recentReservations' => Reservation::query()
+                ->select([
+                    'id',
+                    'customer_id',
+                    'restaurant_table_id',
+                    'reservation_time',
+                    'party_size',
+                    'total_amount',
+                    'deposit_paid',
+                ])
+                ->with([
+                    'customer:id,customer_name,contact_number',
+                    'restaurantTable:id,table_number,table_capacity',
+                ])
                 ->latest('reservation_time')
                 ->take(5)
                 ->get(),
