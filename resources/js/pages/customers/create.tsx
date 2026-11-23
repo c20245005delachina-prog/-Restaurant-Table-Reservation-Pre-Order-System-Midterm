@@ -55,7 +55,7 @@ export default function Create() {
                             href="/customers"
                             className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-5 py-3 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50"
                         >
-                            ← Back to Customers
+                             Back to Customers
                         </Link>
                     </div>
 

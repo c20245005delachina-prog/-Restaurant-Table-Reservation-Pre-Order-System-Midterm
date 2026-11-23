@@ -438,6 +438,8 @@ export default function Edit({
                                                 event.target.value,
                                             )
                                         }
+                                        min="2026-01-01T00:00"
+                                        max="2030-12-31T23:59"
                                         required
                                         className={inputStyle}
                                     />

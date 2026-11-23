@@ -177,7 +177,7 @@ export default function Create({
                                 href="/dashboard"
                                 className="rounded-lg border border-gray-300 bg-white px-5 py-3 text-sm font-semibold text-gray-800 shadow-sm hover:bg-gray-50"
                             >
-                                ← Dashboard
+                                 Dashboard
                             </Link>
 
                             <Link
@@ -350,6 +350,8 @@ export default function Create({
                                         onChange={(event) =>
                                             setData('reservation_time', event.target.value)
                                         }
+                                        min="2026-01-01T00:00"
+                                        max="2030-12-31T23:59"
                                         required
                                         className={inputStyle}
                                     />

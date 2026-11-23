@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreCustomerRequest;
 use App\Http\Requests\UpdateCustomerRequest;
 use App\Models\Customer;
-use App\Services\CustomerService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -13,24 +12,26 @@ use Inertia\Response;
 
 class CustomerController extends Controller
 {
-    public function __construct(
-        private CustomerService $service
-    ) {}
-
     /**
      * Display all customers.
      */
     public function index(Request $request): Response
-{
-    $search = $request->query('search');
+    {
+        $search = $request->query('search');
 
-    return Inertia::render('customers/index', [
-        'customers' => $this->service->paginate($search),
-        'filters' => [
-            'search' => $search,
-        ],
-    ]);
-}
+        return Inertia::render('customers/index', [
+            'customers' => Customer::query()
+                ->when($search, function ($query, $search) {
+                    $query->where('name', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%");
+                })
+                ->paginate(10)
+                ->withQueryString(),
+            'filters' => [
+                'search' => $search,
+            ],
+        ]);
+    }
 
     /**
      * Show the form for creating a customer.
@@ -46,9 +47,7 @@ class CustomerController extends Controller
     public function store(
         StoreCustomerRequest $request
     ): RedirectResponse {
-        $this->service->createCustomer(
-            $request->validated()
-        );
+        Customer::create($request->validated());
 
         return to_route('customers.index')
             ->with('success', 'Customer created successfully.');
@@ -58,16 +57,21 @@ class CustomerController extends Controller
      * Display a specific customer.
      */
     public function show(Customer $customer): Response
-{
-    $customer->load([
-        'reservations.restaurantTable',
-        'reservations.reservationItems.menuItem',
-    ]);
+    {
+        // OPTIMIZATION:
+        // Uses nested eager loading to retrieve related reservations,
+        // restaurant tables, reservation items, and menu items in batches.
+        // Prevents N+1 queries and reduces unnecessary database requests.
+        $customer->load([
+            'reservations.restaurantTable',
+            'reservations.reservationItems.menuItem',
+        ]);
 
-    return Inertia::render('customers/show', [
-        'customer' => $customer,
-    ]);
-}
+        return Inertia::render('customers/show', [
+            'customer' => $customer,
+        ]);
+    }
+
     /**
      * Show the form for editing a customer.
      */
@@ -85,10 +89,7 @@ class CustomerController extends Controller
         UpdateCustomerRequest $request,
         Customer $customer
     ): RedirectResponse {
-        $this->service->updateCustomer(
-            $request->validated(),
-            $customer->id
-        );
+        $customer->update($request->validated());
 
         return to_route('customers.index')
             ->with('success', 'Customer updated successfully.');
@@ -99,7 +100,7 @@ class CustomerController extends Controller
      */
     public function destroy(Customer $customer): RedirectResponse
     {
-        $this->service->deleteCustomer($customer->id);
+        $customer->delete();
 
         return to_route('customers.index')
             ->with('success', 'Customer deleted successfully.');

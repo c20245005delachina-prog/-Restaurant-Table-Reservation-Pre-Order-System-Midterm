@@ -69,6 +69,8 @@ class UpdateReservationRequest extends FormRequest
                 'sometimes',
                 'required',
                 'date',
+                'after_or_equal:today',
+                'before_or_equal:2030-12-31',
             ],
 
             'party_size' => [

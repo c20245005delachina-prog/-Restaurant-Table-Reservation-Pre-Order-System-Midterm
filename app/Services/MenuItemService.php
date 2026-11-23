@@ -30,8 +30,8 @@ class MenuItemService
     private function sanitizePrice(mixed $value): string
     {
         if (
-            !is_numeric($value) ||
-            !is_finite((float) $value) ||
+            ! is_numeric($value) ||
+            ! is_finite((float) $value) ||
             (float) $value < 0 ||
             (float) $value > self::MAX_PRICE
         ) {
@@ -40,7 +40,6 @@ class MenuItemService
             ]);
         }
 
-        // Store prices with exactly two decimal places.
         return number_format((float) $value, 2, '.', '');
     }
 
@@ -52,6 +51,7 @@ class MenuItemService
         $name = $this->sanitizeText($data['name'] ?? '');
         $category = $this->sanitizeText($data['category'] ?? '');
 
+        // THIS SHOULD BE IN THE FORM REQUEST BUT I PUT IT HERE FOR NOW BECAUSE I NEED TO SANITIZE THE PRICE TOO
         if ($name === '') {
             throw ValidationException::withMessages([
                 'name' => 'The menu item name is required.',
@@ -73,6 +73,7 @@ class MenuItemService
 
     /**
      * Display menu items with optional search.
+     * Search by name, category, or price.
      */
     public function paginate(
         ?string $search = null,
@@ -82,11 +83,12 @@ class MenuItemService
             ? $this->sanitizeText($search)
             : null;
 
-        return MenuItem::query()
+        return MenuItem::query() // SAME MAN
             ->when($search !== null && $search !== '', function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
-                        ->orWhere('category', 'like', "%{$search}%");
+                        ->orWhere('category', 'like', "%{$search}%")
+                        ->orWhere('price', 'like', "%{$search}%");
                 });
             })
             ->latest()

@@ -22,7 +22,7 @@ class SanitizeInput
     }
 
     /**
-     * @param array<string|int, mixed> $data
+     * @param  array<string|int, mixed>  $data
      * @return array<string|int, mixed>
      */
     private function sanitize(array $data): array

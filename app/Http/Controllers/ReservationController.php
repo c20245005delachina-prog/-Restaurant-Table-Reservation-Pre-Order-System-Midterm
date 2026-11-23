@@ -103,7 +103,7 @@ class ReservationController extends Controller
      */
     public function show(int $id): Response
     {
-        $reservation = Reservation::query()
+        $reservation = Reservation::query() // CORRECT
             ->with([
                 'customer:id,customer_name,contact_number',
                 'restaurantTable:id,table_number,table_capacity',

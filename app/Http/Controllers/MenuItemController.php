@@ -9,6 +9,7 @@ use App\Services\MenuItemService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Inertia\Response;
 
 class MenuItemController extends Controller
 {
@@ -19,17 +20,19 @@ class MenuItemController extends Controller
         $this->menuItemService = $menuItemService;
     }
 
-    public function index(Request $request)
+    public function index(Request $request): Response
     {
+        $search = $request->query('search');
+
         return Inertia::render('menu-items/index', [
-            'menuItems' => $this->menuItemService->paginate(
-                $request->input('search'),
-                10
-            ),
+            'menuItems' => $this->menuItemService->paginate($search, 10),
+            'filters' => [
+                'search' => $search,
+            ],
         ]);
     }
 
-    public function create()
+    public function create(): Response
     {
         return Inertia::render('menu-items/create');
     }
@@ -42,9 +45,14 @@ class MenuItemController extends Controller
             ->with('success', 'Menu item created successfully.');
     }
 
-    public function update(UpdateMenuItemRequest $request, MenuItem $menuItem): RedirectResponse
-    {
-        $this->menuItemService->updateMenuItem($request->validated(), $menuItem->id);
+    public function update(
+        UpdateMenuItemRequest $request,
+        MenuItem $menuItem
+    ): RedirectResponse {
+        $this->menuItemService->updateMenuItem(
+            $request->validated(),
+            $menuItem->id
+        );
 
         return redirect()->route('menu-items.index')
             ->with('success', 'Menu item updated successfully.');

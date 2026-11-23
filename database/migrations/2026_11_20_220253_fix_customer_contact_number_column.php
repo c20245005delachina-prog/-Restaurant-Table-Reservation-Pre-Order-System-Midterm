@@ -13,7 +13,7 @@ return new class extends Migration
         // Rename the old column if contact_number does not exist.
         if (
             Schema::hasColumn('customers', 'customer_number') &&
-            !Schema::hasColumn('customers', 'contact_number')
+            ! Schema::hasColumn('customers', 'contact_number')
         ) {
             Schema::table('customers', function (Blueprint $table) {
                 $table->renameColumn('customer_number', 'contact_number');
@@ -42,7 +42,7 @@ return new class extends Migration
     {
         if (
             Schema::hasColumn('customers', 'contact_number') &&
-            !Schema::hasColumn('customers', 'customer_number')
+            ! Schema::hasColumn('customers', 'customer_number')
         ) {
             Schema::table('customers', function (Blueprint $table) {
                 $table->renameColumn('contact_number', 'customer_number');

@@ -1,6 +1,6 @@
-
 import AppLayout from '@/layouts/app-layout';
 import { Head, Link, router } from '@inertiajs/react';
+import { FormEvent, useState } from 'react';
 
 interface Customer {
     id: number;
@@ -53,6 +53,9 @@ interface PaginatedReservations {
 
 interface Props {
     reservations: PaginatedReservations;
+    filters: {
+        search?: string;
+    };
 }
 
 const peso = (amount: number | string) =>
@@ -75,7 +78,37 @@ const formatDate = (date: string) => {
     });
 };
 
-export default function Index({ reservations }: Props) {
+export default function Index({ reservations, filters }: Props) {
+    const [search, setSearch] = useState(filters.search ?? '');
+
+    const handleSearch = (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+
+        router.get(
+            '/reservations',
+            { search: search.trim() },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            },
+        );
+    };
+
+    const clearSearch = () => {
+        setSearch('');
+
+        router.get(
+            '/reservations',
+            {},
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            },
+        );
+    };
+
     const deleteReservation = (id: number) => {
         if (!window.confirm(`Are you sure you want to delete reservation #${id}?`)) {
             return;
@@ -112,7 +145,7 @@ export default function Index({ reservations }: Props) {
                                 href="/dashboard"
                                 className="rounded-lg border border-gray-300 bg-white px-5 py-3 text-sm font-semibold text-gray-800 shadow-sm hover:bg-gray-50"
                             >
-                                 Dashboard
+                                Dashboard
                             </Link>
 
                             <Link
@@ -129,6 +162,7 @@ export default function Index({ reservations }: Props) {
                             <p className="text-sm font-medium text-gray-500">
                                 Total Reservations
                             </p>
+
                             <p className="mt-2 text-3xl font-bold text-gray-950">
                                 {reservations.total}
                             </p>
@@ -138,6 +172,7 @@ export default function Index({ reservations }: Props) {
                             <p className="text-sm font-medium text-gray-500">
                                 Current Page
                             </p>
+
                             <p className="mt-2 text-3xl font-bold text-gray-950">
                                 {reservations.data.length}
                             </p>
@@ -145,11 +180,12 @@ export default function Index({ reservations }: Props) {
                     </div>
 
                     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                        <div className="flex flex-col justify-between gap-3 border-b border-gray-200 px-6 py-5 sm:flex-row sm:items-center">
+                        <div className="flex flex-col justify-between gap-4 border-b border-gray-200 px-6 py-5 sm:flex-row sm:items-center">
                             <div>
                                 <h2 className="text-lg font-bold text-gray-900">
                                     Reservation Records
                                 </h2>
+
                                 <p className="mt-1 text-sm text-gray-500">
                                     View and manage saved reservations and pre-orders.
                                 </p>
@@ -160,6 +196,53 @@ export default function Index({ reservations }: Props) {
                             </span>
                         </div>
 
+                        {/* Search */}
+                        <div className="border-b border-gray-200 bg-gray-50 px-6 py-5">
+                            <form
+                                onSubmit={handleSearch}
+                                className="flex flex-col gap-3 sm:flex-row"
+                            >
+                                <div className="relative flex-1">
+                                    <input
+                                        type="text"
+                                        value={search}
+                                        onChange={(event) =>
+                                            setSearch(event.target.value)
+                                        }
+                                        placeholder="Search customer name or contact number..."
+                                        className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100"
+                                    />
+                                </div>
+
+                                <div className="flex gap-2">
+                                    <button
+                                        type="submit"
+                                        className="rounded-lg bg-teal-700 px-6 py-3 text-sm font-semibold text-white hover:bg-teal-800"
+                                    >
+                                        Search
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={clearSearch}
+                                        disabled={!search && !filters.search}
+                                        className="rounded-lg border border-gray-300 bg-white px-5 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                        Clear
+                                    </button>
+                                </div>
+                            </form>
+
+                            {filters.search && (
+                                <p className="mt-3 text-sm text-gray-500">
+                                    Showing results for:{' '}
+                                    <span className="font-semibold text-teal-700">
+                                        "{filters.search}"
+                                    </span>
+                                </p>
+                            )}
+                        </div>
+
                         {reservations.data.length === 0 ? (
                             <div className="px-6 py-16 text-center">
                                 <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-teal-50 text-3xl">
@@ -167,19 +250,33 @@ export default function Index({ reservations }: Props) {
                                 </div>
 
                                 <h3 className="text-lg font-bold text-gray-900">
-                                    No Reservations Yet
+                                    {filters.search
+                                        ? 'No Matching Reservations'
+                                        : 'No Reservations Yet'}
                                 </h3>
 
                                 <p className="mt-2 text-sm text-gray-500">
-                                    Start by adding your first customer reservation.
+                                    {filters.search
+                                        ? 'No reservations matched your search. Try another customer name or contact number.'
+                                        : 'Start by adding your first customer reservation.'}
                                 </p>
 
-                                <Link
-                                    href="/reservations/create"
-                                    className="mt-5 inline-block rounded-lg bg-teal-700 px-5 py-3 text-sm font-semibold text-white hover:bg-teal-800"
-                                >
-                                    + Create Reservation
-                                </Link>
+                                {filters.search ? (
+                                    <button
+                                        type="button"
+                                        onClick={clearSearch}
+                                        className="mt-5 rounded-lg border border-gray-300 bg-white px-5 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                                    >
+                                        Clear Search
+                                    </button>
+                                ) : (
+                                    <Link
+                                        href="/reservations/create"
+                                        className="mt-5 inline-block rounded-lg bg-teal-700 px-5 py-3 text-sm font-semibold text-white hover:bg-teal-800"
+                                    >
+                                        + Create Reservation
+                                    </Link>
+                                )}
                             </div>
                         ) : (
                             <>
@@ -213,6 +310,7 @@ export default function Index({ reservations }: Props) {
                                                         <p className="font-semibold text-gray-900">
                                                             {reservation.customer?.customer_name ?? 'Unknown Customer'}
                                                         </p>
+
                                                         <p className="mt-1 text-xs text-gray-500">
                                                             {reservation.customer?.contact_number ?? 'No contact number'}
                                                         </p>
@@ -242,6 +340,7 @@ export default function Index({ reservations }: Props) {
                                                                         <p className="font-medium text-gray-800">
                                                                             {item.menu_item?.name ?? 'Unknown Item'}
                                                                         </p>
+
                                                                         <p className="text-xs text-gray-500">
                                                                             Quantity: {item.quantity}
                                                                         </p>
@@ -281,7 +380,9 @@ export default function Index({ reservations }: Props) {
 
                                                             <button
                                                                 type="button"
-                                                                onClick={() => deleteReservation(reservation.id)}
+                                                                onClick={() =>
+                                                                    deleteReservation(reservation.id)
+                                                                }
                                                                 className="rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-100"
                                                             >
                                                                 Delete
@@ -294,6 +395,7 @@ export default function Index({ reservations }: Props) {
                                     </table>
                                 </div>
 
+                                {/* Pagination */}
                                 {reservations.links.length > 3 && (
                                     <div className="flex flex-wrap items-center justify-center gap-2 border-t border-gray-200 px-6 py-5">
                                         {reservations.links.map((link, index) => (

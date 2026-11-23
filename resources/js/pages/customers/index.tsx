@@ -1,4 +1,3 @@
-
 import AppLayout from '@/layouts/app-layout';
 import { Head, Link, router } from '@inertiajs/react';
 import { FormEvent, useState } from 'react';
@@ -27,13 +26,14 @@ interface PaginatedCustomers {
 interface IndexProps {
     customers: PaginatedCustomers;
     filters?: {
-        search?: string;
+        search?: string | null;
     };
 }
 
 export default function Index({ customers, filters }: IndexProps) {
     const [search, setSearch] = useState(filters?.search ?? '');
 
+    // Search customers.
     const handleSearch = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
@@ -43,10 +43,27 @@ export default function Index({ customers, filters }: IndexProps) {
             {
                 preserveState: true,
                 preserveScroll: true,
+                replace: true,
             },
         );
     };
 
+    // Clear search.
+    const clearSearch = () => {
+        setSearch('');
+
+        router.get(
+            '/customers',
+            {},
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            },
+        );
+    };
+
+    // Delete customer.
     const deleteCustomer = (customer: Customer) => {
         if (
             !window.confirm(
@@ -89,7 +106,7 @@ export default function Index({ customers, filters }: IndexProps) {
                                 href="/dashboard"
                                 className="rounded-lg border border-gray-300 bg-white px-5 py-3 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50"
                             >
-                                ← Dashboard
+                                Dashboard
                             </Link>
 
                             <Link
@@ -101,7 +118,7 @@ export default function Index({ customers, filters }: IndexProps) {
                         </div>
                     </div>
 
-                    {/* SUMMARY CARD */}
+                    {/* SUMMARY CARDS */}
                     <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                             <div className="flex items-center justify-between">
@@ -143,7 +160,7 @@ export default function Index({ customers, filters }: IndexProps) {
                     {/* CUSTOMER TABLE CARD */}
                     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
 
-                        {/* TABLE HEADER */}
+                        {/* TABLE HEADER AND SEARCH */}
                         <div className="flex flex-col justify-between gap-4 border-b border-gray-200 px-6 py-5 sm:flex-row sm:items-center">
                             <div>
                                 <h2 className="text-lg font-bold text-gray-900">
@@ -155,10 +172,10 @@ export default function Index({ customers, filters }: IndexProps) {
                                 </p>
                             </div>
 
-                            {/* SEARCH */}
+                            {/* SEARCH FORM */}
                             <form
                                 onSubmit={handleSearch}
-                                className="flex w-full gap-2 sm:max-w-md"
+                                className="flex w-full flex-col gap-2 sm:max-w-lg sm:flex-row"
                             >
                                 <input
                                     type="search"
@@ -174,10 +191,35 @@ export default function Index({ customers, filters }: IndexProps) {
                                 >
                                     Search
                                 </button>
+
+                                {search && (
+                                    <button
+                                        type="button"
+                                        onClick={clearSearch}
+                                        className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-600 transition hover:bg-gray-100"
+                                    >
+                                        Clear
+                                    </button>
+                                )}
                             </form>
                         </div>
 
-                        {/* TABLE */}
+                        {/* SEARCH RESULT INFORMATION */}
+                        {filters?.search && (
+                            <div className="border-b border-gray-100 bg-teal-50 px-6 py-3">
+                                <p className="text-sm text-teal-800">
+                                    Showing results for:
+                                    <span className="ml-1 font-bold">
+                                        "{filters.search}"
+                                    </span>
+                                    <span className="ml-2 text-teal-600">
+                                        ({customers.total} records found)
+                                    </span>
+                                </p>
+                            </div>
+                        )}
+
+                        {/* CUSTOMER TABLE */}
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm">
                                 <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
@@ -262,7 +304,9 @@ export default function Index({ customers, filters }: IndexProps) {
                                                 colSpan={3}
                                                 className="px-6 py-16 text-center"
                                             >
-                                                <div className="text-4xl">👥</div>
+                                                <div className="text-4xl">
+                                                    👥
+                                                </div>
 
                                                 <p className="mt-3 font-semibold text-gray-700">
                                                     No customers found
@@ -272,9 +316,19 @@ export default function Index({ customers, filters }: IndexProps) {
                                                     Add a new customer or try a different search.
                                                 </p>
 
+                                                {filters?.search && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={clearSearch}
+                                                        className="mt-4 rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-100"
+                                                    >
+                                                        Clear Search
+                                                    </button>
+                                                )}
+
                                                 <Link
                                                     href="/customers/create"
-                                                    className="mt-4 inline-block rounded-lg bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-800"
+                                                    className="mt-4 ml-2 inline-block rounded-lg bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-800"
                                                 >
                                                     + Add Customer
                                                 </Link>
@@ -323,7 +377,9 @@ export default function Index({ customers, filters }: IndexProps) {
 
                     {/* INFORMATION NOTE */}
                     <div className="mt-6 flex items-start gap-3 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
-                        <span className="text-lg text-yellow-600">!</span>
+                        <span className="text-lg text-yellow-600">
+                            !
+                        </span>
 
                         <div>
                             <p className="text-sm font-bold text-gray-800">

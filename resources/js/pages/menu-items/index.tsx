@@ -1,6 +1,7 @@
 
 import AppLayout from '@/layouts/app-layout';
 import { Head, Link, router } from '@inertiajs/react';
+import { FormEvent, useState } from 'react';
 
 interface MenuItem {
     id: number;
@@ -27,6 +28,9 @@ interface PaginatedMenuItems {
 
 interface Props {
     menuItems: PaginatedMenuItems;
+    filters?: {
+        search?: string;
+    };
 }
 
 const peso = (price: number | string) =>
@@ -44,16 +48,48 @@ function paginationLabel(label: string) {
         .trim();
 }
 
-export default function Index({ menuItems }: Props) {
+export default function Index({ menuItems, filters }: Props) {
+    const [search, setSearch] = useState(filters?.search ?? '');
+
     const startNumber =
         menuItems.total === 0
             ? 0
-            : (menuItems.current_page - 1) * (menuItems.per_page ?? 10) + 1;
+            : (menuItems.current_page - 1) *
+                  (menuItems.per_page ?? 10) +
+              1;
 
     const endNumber = Math.min(
         menuItems.current_page * (menuItems.per_page ?? 10),
         menuItems.total,
     );
+
+    const handleSearch = (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+
+        router.get(
+            '/menu-items',
+            { search: search.trim() },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            },
+        );
+    };
+
+    const clearSearch = () => {
+        setSearch('');
+
+        router.get(
+            '/menu-items',
+            {},
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            },
+        );
+    };
 
     return (
         <AppLayout>
@@ -69,7 +105,7 @@ export default function Index({ menuItems }: Props) {
                                 href="/dashboard"
                                 className="mb-4 inline-flex items-center text-sm font-semibold text-teal-700 transition hover:text-teal-900"
                             >
-                                 Back to Dashboard
+                                Back to Dashboard
                             </Link>
 
                             <p className="text-sm font-semibold uppercase tracking-wider text-teal-700">
@@ -107,7 +143,7 @@ export default function Index({ menuItems }: Props) {
                                     </p>
 
                                     <p className="mt-1 text-xs text-gray-400">
-                                        Registered restaurant food items
+                                        Matching restaurant food items
                                     </p>
                                 </div>
 
@@ -168,6 +204,50 @@ export default function Index({ menuItems }: Props) {
                             </p>
                         </div>
 
+                        {/* SEARCH */}
+                        <div className="border-b border-gray-200 p-5 sm:p-6">
+                            <form
+                                onSubmit={handleSearch}
+                                className="flex flex-col gap-3 sm:flex-row"
+                            >
+                                <input
+                                    type="text"
+                                    value={search}
+                                    onChange={(event) =>
+                                        setSearch(event.target.value)
+                                    }
+                                    placeholder="Search menu item, category, or price..."
+                                    className="w-full flex-1 rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-100"
+                                />
+
+                                <button
+                                    type="submit"
+                                    className="rounded-lg bg-teal-700 px-6 py-3 text-sm font-semibold text-white transition hover:bg-teal-800"
+                                >
+                                    Search
+                                </button>
+
+                                {filters?.search && (
+                                    <button
+                                        type="button"
+                                        onClick={clearSearch}
+                                        className="rounded-lg border border-gray-300 px-6 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-100"
+                                    >
+                                        Clear
+                                    </button>
+                                )}
+                            </form>
+
+                            {filters?.search && (
+                                <p className="mt-3 text-sm text-gray-500">
+                                    Search results for:{' '}
+                                    <span className="font-semibold text-teal-700">
+                                        "{filters.search}"
+                                    </span>
+                                </p>
+                            )}
+                        </div>
+
                         {/* TABLE */}
                         <div className="w-full overflow-x-auto">
                             <table className="w-full min-w-[650px] text-left text-sm">
@@ -219,19 +299,33 @@ export default function Index({ menuItems }: Props) {
                                                 </div>
 
                                                 <h3 className="mt-4 font-bold text-gray-900">
-                                                    No menu items yet
+                                                    {filters?.search
+                                                        ? 'No matching menu items found'
+                                                        : 'No menu items yet'}
                                                 </h3>
 
                                                 <p className="mt-1 text-sm text-gray-500">
-                                                    Add your first restaurant menu item to get started.
+                                                    {filters?.search
+                                                        ? 'Try another menu item name, category, or price.'
+                                                        : 'Add your first restaurant menu item to get started.'}
                                                 </p>
 
-                                                <Link
-                                                    href="/menu-items/create"
-                                                    className="mt-5 inline-flex rounded-lg bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-800"
-                                                >
-                                                    + Add Menu Item
-                                                </Link>
+                                                {filters?.search ? (
+                                                    <button
+                                                        type="button"
+                                                        onClick={clearSearch}
+                                                        className="mt-5 inline-flex rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-100"
+                                                    >
+                                                        Clear Search
+                                                    </button>
+                                                ) : (
+                                                    <Link
+                                                        href="/menu-items/create"
+                                                        className="mt-5 inline-flex rounded-lg bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-800"
+                                                    >
+                                                        + Add Menu Item
+                                                    </Link>
+                                                )}
                                             </td>
                                         </tr>
                                     )}
@@ -276,7 +370,7 @@ export default function Index({ menuItems }: Props) {
 
                     {/* FOOTER */}
                     <footer className="mt-6 pb-4 text-center text-xs text-gray-400">
-                        Restaurant Table Reservation & Pre-Order System © 2026
+                        Restaurant Table Reservation &amp; Pre-Order System © 2026
                     </footer>
                 </div>
             </main>
